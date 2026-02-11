@@ -1,0 +1,535 @@
+
+████████████████████████████████████████████████████████████████████████
+█  PRACTICAL WAVE APPLICATIONS                                       █
+█  Real tools built from Fourier and wavelet principles              █
+████████████████████████████████████████████████████████████████████████
+
+========================================================================
+  APPLICATION 1: JPEG-STYLE COMPRESSION
+  DCT + quantization — the core of image compression
+========================================================================
+
+    JPEG doesn't use the FFT directly — it uses the DCT
+    (Discrete Cosine Transform), which is the REAL-VALUED cousin.
+
+    The DCT is like the FFT but:
+      • Uses only cosines (no sines), so output is real, not complex
+      • Has better "energy compaction" — more energy in fewer coefficients
+      • Doesn't assume periodicity (avoids boundary artifacts)
+
+    This is why JPEG, MP3, AAC, H.264, and H.265 all use DCT.
+
+    The compression pipeline:
+      1. Split data into blocks of 8 samples
+      2. DCT each block → frequency coefficients
+      3. Quantize (round to fewer levels) → lossy step
+      4. Only store the nonzero quantized coefficients
+    
+    Original 'image row' (64 pixel intensities):
+      222.00 ┤                                             █│             
+             ┤  ████│                   ████│             █││             
+             ┤ █│   █│ ██│        ██│  █│   │            █│ █│            
+             ┤█│     ██│ █│      █│ ███│    │           █│   ██│          
+      128.11 ┤            █│    █│          │     ███│ █│      █│ ██│    █
+             ┤             █│  █│           █│    │  ██│        ██│ █│   │
+             ┤              █│█│             █████│                  ████│
+             ┤               ││                                           
+       34.22 ┤               █│                                           
+             └────────────────────────────────────────────────────────────
+
+     Quality    Nonzero     RMSE  PSNR (dB)   Compression
+    ──────── ────────── ──────── ────────── ─────────────
+        100%         61     0.31       58.3          1.0×
+         50%         48     2.89       38.9          1.3×
+         25%         36     4.81       34.5          1.8×
+         10%         34     5.01       34.1          1.9×
+          5%         34     5.16       33.9          1.9×
+
+    Compressed at quality=25 (4× compression):
+      227.01 ┤                                             █│             
+             ┤  ████│                   ████│             █││             
+             ┤ █│   █│  █│             █│   │             │ █│            
+             ┤█│     ███│█│      ████│ │    │           ██│  ██│          
+      130.40 ┤            █│    █│   ██│    │     ███│██│      █│ ██│    █
+             ┤             █│  █│           █│    │  █│         ██│ ██│  │
+             ┤              █│█│             █████│                   ███│
+             ┤               ││                                           
+       33.79 ┤               █│                                           
+             └────────────────────────────────────────────────────────────
+
+    ► The DCT is the Fourier Transform's practical cousin
+    ► JPEG quality slider literally controls the quantization step
+    ► Real JPEG also applies Huffman coding (repo 1!) after DCT
+    ► Connection: DCT (this repo) + Huffman (repo 1) = JPEG
+      Waves and bits working together in every photo you've ever seen
+    
+
+========================================================================
+  APPLICATION 2: AUDIO SYNTHESIZER
+  Building sounds from pure mathematics
+========================================================================
+
+    Since Fourier proved that any sound = sum of sine waves,
+    we can BUILD any sound by adding sines at the right frequencies.
+
+    Two classic synthesis techniques:
+      1. ADDITIVE: directly sum harmonics (Fourier in reverse)
+      2. FM (Frequency Modulation): modulate one wave's frequency
+         with another, creating complex timbres cheaply
+    
+  ── Additive Synthesis: different timbres from harmonics ──
+
+    Pure tone (1 harmonics):
+        1.00 ┤ █│  █│  ██│  █│  █│  █│  █│  ██│  █│  █│  █│  █│  ██│  █│  
+             ┤ ││  │█│ │ │ █││  ││  ││  │█│ │ │ █││  ││  ││  │█│ │ │ █││  
+             ┤ │█│ │ │ │ │ │ │ █││  │█│ │ │ │ │ │ │ █││  │█│ │ │ │ │ │ │ █
+        0.00 ┤█··············█···█·█··············█···█·█·················
+             ┤   │█│ │█│ █││  ││  ││  │█│ │█│ │ │  ││  ││  │█│ │█│ │ │ █││
+             ┤   █│  █│   █│  █│  █│  █│  █│  ██│  █│  █│  █│  █│  ██│  █│
+       -1.00 ┤                                                            
+             └────────────────────────────────────────────────────────────
+
+    Organ (6 harmonics):
+        1.00 ┤         █│  █│  █│           █│  █│  █│               █│  █
+             ┤ █│  █│  ││  ││  ││   █│  █│  ││  ││  ││   █│  █│  █│  ││  │
+             ┤ │█│ │█│ │█│ │█│ │██│ ││  │█│ │█│ │█│ │██│ ││  │█│ │█│ │█│ │
+        0.00 ┤█··█···█···█···█····█··██···█···█···█····█··██···█···█···█··
+             ┤    ││  ││  █│  █│   █│  ││  ││  █│  █│   █│  ││  ││  █│  █│
+             ┤    █│  █│               █│  █│               █│  █│        
+       -1.00 ┤                                                            
+             └────────────────────────────────────────────────────────────
+
+    Clarinet (4 harmonics):
+        1.00 ┤  █│  █│     █│  █│        █│     █│  █│        █│     █│  █
+             ┤ █││ █││ ██│ │█│ │█│  ██│ █││ ██│ │█│ │█│  ██│ █││ ██│ │█│ │
+             ┤█···························································
+       -0.00 ┤   │ │ │ │ │ │ │ │ █│ │ │ │ │ │ │ │ │ │ │  │ │ │ │ │ │ │ │ │
+             ┤   █││ █││ ██│ │█│  ██│ █││ █││ ██│ │█│ ███│ █││ █││ ██│ │█│
+             ┤    █│  █│     █│        █│  █│     █│        █│  █│     █│ 
+       -1.00 ┤                                                            
+             └────────────────────────────────────────────────────────────
+
+    Sawtooth (15 harmonics):
+        1.00 ┤         █│  █│  █│               █│  █│               █│  █
+             ┤ █│  █│  ││  ││  │█│  █│  █│  █│  ││  │█│  █│  █│  █│  ││  │
+             ┤█·█···█···█···█········█···█···█···█········█···█···█···█···
+       -0.00 ┤   █││ █││ █││ █││ █│ │ │ │ █││ █││ █││ █│ │ │ │ █││ █││ █││
+             ┤    ││  ││  █│  █│  █││ █││  ││  █│  █│  █││ █││  ││  █│  █│
+             ┤    █│  █│           █│  █│  █│           █│  █│  █│        
+       -1.00 ┤                                                            
+             └────────────────────────────────────────────────────────────
+
+    Square (8 harmonics):
+        1.00 ┤ ██│ ██│ ██│ ██│ ██│  ██│ ██│ ██│ ██│ ██│  ██│ ██│ ██│ ██│ █
+             ┤ │ │ │ │ │ │ │ │ │ │  │ │ │ │ │ │ │ │ │ │  │ │ │ │ │ │ │ │ │
+             ┤ │ │ │ │ │ │ │ │ │ │  │ │ │ │ │ │ │ │ │ │  │ │ │ │ │ │ │ │ │
+        0.00 ┤█···························································
+             ┤   │ │ │ │ │ │ │ │ █│ │ │ │ │ │ │ │ │ │ │  │ │ │ │ │ │ │ │ │
+             ┤   ██│ ██│ ██│ ██│  ██│ ██│ ██│ ██│ ██│ ███│ ██│ ██│ ██│ ██│
+       -1.00 ┤                                                            
+             └────────────────────────────────────────────────────────────
+
+  ── FM Synthesis: complex sounds from just 2 oscillators ──
+
+
+    FM synthesis: f(t) = sin(2π·f_c·t + β·sin(2π·f_m·t))
+
+    f_c = carrier frequency (the pitch you hear)
+    f_m = modulation frequency (controls timbre)
+    β   = modulation index (controls richness/brightness)
+    
+    β =  0  (13 significant harmonics):
+        1.00 ┤ █│  ██│ ██│  █│  █│  █│  ██│ ██│ ██│  █│  █│  ██│ ██│ ██│  
+             ┤ │█│ │ │ │ │ █││ █││  │█│ │ │ │ │ │ │ █││  │█│ │ │ │ │ │ │ █
+        0.00 ┤█···█··········█···█·█···█··········█···█·█···█··········█··
+             ┤   █│  ██│ ██│  █│  █│  █│  ██│ ██│  █│  █│  █│  ██│ ██│  █│
+       -1.00 ┤                                                            
+             └────────────────────────────────────────────────────────────
+
+    β =  1  (16 significant harmonics):
+        1.00 ┤ █│  █│  █│  █│  █│   █│  █│  █│  █│  █│   █│  █│  █│  █│  █
+             ┤ │█│ │█│ │█│ │█│ │█│  │█│ │█│ │█│ │█│ │█│  │█│ │█│ │█│ │█│ │
+        0.00 ┤█··█···█···█···█···█·█··█···█···█···█···█·█··█···█···█···█··
+             ┤    █│  █│  █│  █│  █│   █│  █│  █│  █│  █│   █│  █│  █│  █│
+       -1.00 ┤                                                            
+             └────────────────────────────────────────────────────────────
+
+    β =  3  (28 significant harmonics):
+        1.00 ┤   █│  █│  █│█│███│ █│  █│  █│  █│█│███│ █│  █│  █│  █│█│███
+             ┤   ││  ││█││█│││  │█││  ││  ││█││█│││  │█││  ││  ││█││█│││  
+        0.00 ┤█·█····················█··················█·█···············
+             ┤ █│ ███│█│█│  █│  █│ ██│ ███│█│█│  █│  █│  █│ ███│█│█│  █│  
+       -1.00 ┤                                                            
+             └────────────────────────────────────────────────────────────
+
+    β =  5  (19 significant harmonics):
+        1.00 ┤           ██│ █│█│              █│ █│█│              █│ █│█
+             ┤██·····██····██·█·██··█······█··█·██·█·██··█······█··█··█·█·
+       -0.00 ┤  │█│  │ │█│        █│││█│█│█││█│        █│││█│█│█││█│ █│   
+             ┤  █│███│ █│          █│█│█│█│ █│          █│█│█│█│ █│       
+       -1.00 ┤                                                            
+             └────────────────────────────────────────────────────────────
+
+    β = 10  (36 significant harmonics):
+        1.00 ┤   ██│██│█│     █│ ██│  ██│██│█│     █│ ██│  ██│██│█│     █│
+             ┤   │ ││ │││ █│ █│█││ │  │ ││ │││ █│ █││ │ │  │ ││ █││     ││
+        0.00 ┤█·······█·██·················█·██·····█·············████·█·█
+             ┤ ██│ █│      ██│  █│ ███│ █│      ██│  █│ ███│ █│       █│  
+       -1.00 ┤                                                            
+             └────────────────────────────────────────────────────────────
+
+
+    As β increases, the FM signal develops more and more harmonics.
+    With just TWO oscillators, FM synthesis creates rich, complex
+    timbres — this powered the Yamaha DX7, one of the best-selling
+    synthesizers ever.
+
+    ► The SPECTRUM of FM synthesis is given by Bessel functions —
+      the same math that describes vibrating drums and radio antennas.
+    ► FM radio uses the exact same principle: carry audio information
+      by modulating the FREQUENCY of a carrier wave.
+    
+
+========================================================================
+  APPLICATION 3: SPECTRAL NOISE FILTER
+  FFT-based denoising that actually works
+========================================================================
+
+    The simplest FFT application: identify signal frequencies,
+    zero out everything else, inverse FFT.
+
+    Steps:
+    1. FFT the noisy signal → frequency domain
+    2. Identify signal peaks (above noise floor)
+    3. Zero out non-peak frequencies (spectral gating)
+    4. Inverse FFT → cleaned signal
+    
+    Clean signal: 40 Hz + 85 Hz + 150 Hz
+        2.02 ┤                          █│         █│    █│   █│    █│    
+             ┤ █│    █│   ██│█│ █│█│    ││   ██│   ││    ││   │█│   ││█│  
+             ┤ │█│   │██│ │ █││ │█│█│ ██││ █││ │   │█│█│█││█│ │ │█│ ││││ █
+        0.01 ┤█··██·█················█··········███·······█·····█··█·█·█··
+             ┤     ││   █││   │█│   ││   ██│█│ ││    █│││   █││   ││    ││
+             ┤     █│    █│   █│    █│         █│      █│    █│   █│    █│
+       -1.99 ┤                                                            
+             └────────────────────────────────────────────────────────────
+
+    Noisy signal (SNR = -4.2 dB):
+        6.94 ┤                                                            
+             ┤                             █│                    █│       
+             ┤        █│     █│█│██│    █│ ││██│   ██│   █│   ██│││   █│  
+        1.29 ┤█████·██···████···█··█·█·█·········█····██···█·█·····███···█
+             ┤     █│  ██│    █│    ││█│ █││█│ │█│█│ █│ █│█│█│  █│█│   █││
+             ┤                      █│    █│   █│                       █│
+       -4.36 ┤                                                            
+             └────────────────────────────────────────────────────────────
+
+    Filtered signal (SNR = 10.8 dB):
+        2.02 ┤       █│                 █│    █│   █│    █│   █│    █│    
+             ┤ ██│   ││    █│█│ █│█│    ││   █││   ││    ││   │█│   ││█│ █
+             ┤········██··█·█····█·█··██···█········█·█·█··█·····█········
+       -0.05 ┤█│ ██│█│  █││   │ │   │█│  █││█│ │███│ ││││ ││█││ █││█│█│█││
+             ┤     ││    ││   ██│   ││    ││   █│    █│█│ █│ █│   ││    ││
+             ┤     █│    █│         █│    █│                      █│    ││
+       -2.13 ┤                                                          █│
+             └────────────────────────────────────────────────────────────
+
+    Frequency spectrum — noisy:
+         1.0 ┤          █                                                 
+             ┤          █                                                 
+             ┤          █                                                 
+             ┤          █          █                                      
+             ┤          █          █                                      
+             ┤          █          █               █                      
+             ┤          █          █               █                      
+             ┤          █          █               █       █              
+           0 ┤█ ██████  ███   ████ ██ █ ██  █████ ███ █ ███████████  █████
+             └────────────────────────────────────────────────────────────
+
+    Frequency spectrum — filtered (only signal peaks kept):
+         1.0 ┤          █                                                 
+             ┤          █                                                 
+             ┤          █                                                 
+             ┤          █          █                                      
+             ┤          █          █                                      
+             ┤          █          █               █                      
+             ┤          █          █               █                      
+             ┤          █          █               █                      
+           0 ┤          █          █               ██                     
+             └────────────────────────────────────────────────────────────
+
+    Detected signal components:
+          40 Hz  (magnitude 0.486)
+          85 Hz  (magnitude 0.370)
+         150 Hz  (magnitude 0.236)
+
+    SNR improvement: -4.2 dB → 10.8 dB (+15.0 dB)
+
+    ► This is spectral gating — used in audio noise reduction
+      software (like noise removal in Audacity).
+    ► The same principle (filter in frequency domain, convert back)
+      is used in noise-canceling headphones, radio receivers,
+      and medical signal processing.
+    
+
+========================================================================
+  APPLICATION 4: FFT-BASED TEMPLATE MATCHING
+  Finding patterns fast via cross-correlation
+========================================================================
+
+    Cross-correlation measures how similar a small template is to
+    every position in a longer signal. Naively it's O(N·M).
+    Via the convolution theorem, it's O(N log N).
+
+    Applications:
+      • Radar: match reflected pulse to find target distance
+      • Audio: Shazam-style song matching
+      • DNA: find gene sequences in a genome
+      • Image: find a template in a larger image
+    
+    Haystack: 8,192 samples of noise with hidden template at position 5432
+    Template: 128 samples (windowed sine burst)
+
+    Template:
+        0.98 ┤                       █████│              ████│            
+             ┤   ██████│           ██│    █│           ██│   █│           
+             ┤ ██│     ██│        █│       █│         █│      ██│         
+        0.00 ┤█··········█·······█··········█········█··········██······██
+             ┤            ██│   █│           ██│    █│            ██████│ 
+             ┤              ████│              █████│                     
+       -0.98 ┤                                                            
+             └────────────────────────────────────────────────────────────
+
+    Naive O(N·M): 0.2ms  → found at position 5432
+    FFT O(NlogN): 0.5ms  → found at position -2633
+    Speedup:      0×
+    True position: 5432
+
+    FFT correlation near the hidden template:
+       85.04 ┤                                                █│          
+             ┤                                             █│ │█│ █│      
+             ┤                                          █│ │█││ │█││ █│   /home/user/development/fun-experiments/bit-tricks-and-wave-functions/practical_wave_applications.py:719: RuntimeWarning: invalid value encountered in divide
+  np.sin(2 * np.pi * fc * (n - mid)) / (np.pi * (n - mid))
+
+             ┤                                          │█││ ││ ││ │█││   
+       42.52 ┤                                       █│ │ ││ ││ ││ ││ │ █│
+             ┤                                       │██│ ││ ││ ││ ││ │█││
+             ┤                                   ██│█│    █│ ││ ││ █│ █│ █
+             ┤███████████████████████████████████│ █│        █│ █│        
+        0.00 ┤                                                            
+             └────────────────────────────────────────────────────────────
+              Sharp peak = template location
+
+    ► The FFT correlation found the template in 0.5ms
+      vs 0.2ms for naive search — a 0× speedup.
+    ► For longer signals (millions of samples), the speedup
+      grows to 1000× or more.
+    ► This is the CONVOLUTION THEOREM in action:
+      correlation in time = multiplication in frequency.
+    
+
+========================================================================
+  APPLICATION 5: SPECTROGRAM
+  Visualizing frequencies over time
+========================================================================
+
+    A spectrogram is a 2D image where:
+      • X-axis = time
+      • Y-axis = frequency
+      • Brightness = power at that time-frequency point
+
+    It's an STFT magnitude, displayed as an image.
+    This is how music visualizers, speech analysis, and
+    birdsong identification work.
+    
+    Signal: 100 Hz note → 200 Hz note + chirp (50→400 Hz)
+
+    Spectrogram (time → frequency ↑ brightness = power):
+
+      512 Hz ┤      ░░    ░  ░░        ░     ░░░    ░        ░░░░░ ░          
+            ┤░        ░░  ░░░░    ░░░          ░        ░░░░░░          ░░   
+            ┤  ░    ░░  ░ ░ ░     ░       ░  ░          ░ ░░ ░░       ░      
+            ┤     ░░ ░         ░░░    ░░   ░░        ░   ░    ░          ░   
+            ┤░░    ░░░░    ░     ░░    ░░░   ░    ░░    ░       ░░░   ░▒▓▓   
+            ┤ ░░                 ░           ░░░  ░ ░     ░░░   ░░░▒▓▓▓▒░    
+            ┤ ░░░   ░    ░    ░░ ░  ░ ░░  ░   ░ ░░         ░  ░░▒▓▓▒░░       
+            ┤░     ░░░░ ░        ░░   ░  ░        ░░ ░    ░░▒▓▓▒░            
+            ┤  ░ ░░      ░░ ░░░░░        ░░  ░░ ░░   ░ ░░▒▓▓░░░░     ░░      
+            ┤  ░       ░  ░    ░          ░       ░░░▒▓▓▒░   ░░ ░ ░░         
+            ┤    ░░          ░      ░░░    ░ ░░ ░▒▓▓▒░░     ░░░░ ░░░░░░░     
+            ┤               ░░     ░       ░░░▒▓▓▒░░     ░░░    ░░░░░    ░   
+      256 Hz ┤ ░░   ░░░  ░       ░░  ░░  ░░▒▓▓▒░               ░░░░░  ░░ ░    
+            ┤     ░      ░ ░         ░░▒▓▒▒▓▒▒▒▒▒▒▒▒▒░▒▒░░░▒▒▒░▒▒▒░░▒▒▒▒▒▒   
+            ┤░    ░░    ░░   ░  ░░░▒▓▒▒░  ░▒▒░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   
+            ┤ ░   ░       ░   ░▒▓▓▒░   ░░░     ░       ░   ░ ░░          ░   
+            ┤    ░   ░    ░▒▒▓▒▒░       ░░░▒░░░░  ░          ░░░ ░      ░░   
+            ┤ ░░      ░▒▒▓▓▒░░    ░░░      ░   ░   ░     ░░      ░░  ░ ░     
+            ┤▒▒▒▒▒▒▒▒▓█▓▓▒▒▒▒▒░▒▒▒▒▒▒▒▒▒▒▒▒▓░                        ░       
+            ┤░░░▓▓▓▒▒░░░░░░░░░░░░░░░░░░░░░░▒░         ░░ ░   ░░    ░         
+            ┤▒▓▓▒░░░         ░░   ░   ░░            ░░    ░     ░░      ░░   
+            ┤░ ░        ░ ░    ░░░░░                    ░░ ░          ░░     
+            ┤ ░      ░    ░░░░░  ░     ░  ░░░      ░            ░░░          
+        0 Hz ┤      ░    ░░ ░░    ░             ░     ░░ ░ ░ ░░       ░░░ ░   
+            └────────────────────────────────────────────────────────────────
+             t=0s                           t=2s                           t=4s
+
+    You can see:
+      • 100 Hz horizontal line (first half) → 200 Hz (second half)
+      • Diagonal line: the chirp sweeping from low to high frequency
+      • Background speckle: noise
+
+    This is exactly what speech recognition systems see when you
+    talk to Siri/Alexa — your voice becomes a spectrogram, and
+    a neural network reads the patterns.
+
+    ► Connection to repo 1: The spectrogram is to audio what hex
+      dumps are to binary files — a VISUAL REPRESENTATION that
+      reveals hidden structure in the data.
+    
+
+========================================================================
+  APPLICATION 6: DIGITAL FILTERS
+  Sculpting signals in the frequency domain
+========================================================================
+
+    A digital filter removes or enhances specific frequencies.
+    The three basic types:
+
+      • LOW-PASS:   Keep low frequencies, remove high (smoothing)
+      • HIGH-PASS:  Keep high frequencies, remove low (edge detection)
+      • BAND-PASS:  Keep a specific range, remove everything else
+
+    We'll build FIR (Finite Impulse Response) filters — the simplest
+    kind, created by windowing an ideal frequency response.
+    
+    Test signal: 10 Hz + 80 Hz + 200 Hz
+
+        2.81 ┤    █│                        █│                      █│    
+             ┤   █││ █│██│            ██│   │█│   █│          ██│█│ │███│ 
+             ┤ █││ ██│││ █│█│         │ │███│ │██││█│   ██│   │ █││ │   │ 
+        0.01 ┤█·█·····█···█··██·██··██········█··█·········█······██····█·
+             ┤              ││ █│ │█│   █│          ███││ █│██│          █
+             ┤              █│    ││                   █│                 
+       -2.78 ┤                    █│                                      
+             └────────────────────────────────────────────────────────────
+              Original mix
+
+    LOW-PASS filter (cutoff = 50 Hz):
+        1.02 ┤    ██████│                ██████│                 ██████│  
+             ┤████│     █│              █│     ██│             ██│     ██│
+             ┤           ██│          ██│        █│           █│         █
+        0.01 ┤·············█·········█············██·········█············
+             ┤              █│      █│              █│     ██│            
+             ┤               ███│███│                ██████│              
+       -1.00 ┤                  █│                                        
+             └────────────────────────────────────────────────────────────
+              Only 10 Hz remains
+
+    HIGH-PASS filter (cutoff = 50 Hz):
+        1.96 ┤    █│    █│                  █│    █│    █│    █│          
+             ┤    ││    ││    █│      ██│   ││    │█│   │█│   │█│█│ ██│█│ 
+             ┤   █││ █│█│█│█│ │███│ █││ │   │█│ █││ │   │ │█│ │ █││ │ █││ 
+        0.00 ┤██···█······█··█·····█·█···███···█·····██···█···············
+             ┤  █│  █│││    ││    ││    ││    █│ █│ █│ ││   █││   █││   █│
+             ┤        █│    █│    █│    █│             █│    █│    █│    █
+       -1.95 ┤                                                            
+             └────────────────────────────────────────────────────────────
+              80 Hz + 200 Hz remain
+
+    BAND-PASS filter (50–120 Hz):
+        1.81 ┤    █│ █│ █│                              █│ █│ █│ █│ █│ █│ 
+             ┤ █│ ││ ││ ││ █│ █│ █│ █│ █│█│ ██│██│██│██│││ ││ ││ ││ ││ ││ 
+             ┤█││ ││ ││ ││ ││ ││█││█││█│││█││ ││ ││ ││ ││█││█││█│││ ││ ││ 
+        0.05 ┤······█··█··█··█····································█··█··█·
+             ┤  │█│││ ││ ││ ││ ││ ││ ││ ││ ││ ││ ││ ││ ││ ││ ││ ││ █│ █│ █
+             ┤  █│ █│ █│ █│ █│ █│ █│ █│ █│ █│ █│ █│ █│ █│ █│ █│ █│        
+       -1.72 ┤                                                            
+             └────────────────────────────────────────────────────────────
+              Only 80 Hz remains
+
+  ── Filter frequency responses ──
+
+    Low-pass response:
+         1.0 ┤█                                                           
+             ┤█████████                                                   
+             ┤██████████                                                  
+             ┤██████████                                                  
+             ┤███████████                                                 
+             ┤███████████                                                 
+           0 ┤████████████                                                
+             └────────────────────────────────────────────────────────────
+
+    High-pass response:
+         1.0 ┤              █                                             
+             ┤           █████████████████████████████████████████████████
+             ┤           █████████████████████████████████████████████████
+             ┤          ██████████████████████████████████████████████████
+             ┤         ███████████████████████████████████████████████████
+             ┤         ███████████████████████████████████████████████████
+           0 ┤        ████████████████████████████████████████████████████
+             └────────────────────────────────────────────────────────────
+
+
+    ► Filters are CONVOLUTION — they use the convolution theorem!
+    ► The windowed-sinc method designs filters in frequency domain
+      (rectangle) then transforms to time domain (sinc × window).
+    ► Low-pass → smoothing, anti-aliasing
+    ► High-pass → edge detection, DC removal
+    ► Band-pass → radio tuning, voice isolation, EQ
+
+    ► Connection to repo 1: The anti-aliasing filter in the
+      ADC pipeline (signals_and_sampling.py) is exactly the
+      low-pass filter we just built.
+    
+
+========================================================================
+  SUMMARY: YOUR WAVE PROCESSING TOOLKIT
+========================================================================
+
+    ┌────────────────────────────┬──────────────────────────────────┐
+    │ APPLICATION                │ KEY TECHNIQUE                    │
+    ├────────────────────────────┼──────────────────────────────────┤
+    │ 1. JPEG Compression        │ DCT + quantization               │
+    │    Photos & video          │ Fourier's real-valued cousin     │
+    ├────────────────────────────┼──────────────────────────────────┤
+    │ 2. Audio Synthesizer       │ Additive + FM synthesis          │
+    │    Sound from math         │ Fourier in reverse               │
+    ├────────────────────────────┼──────────────────────────────────┤
+    │ 3. Noise Filter            │ Spectral gating via FFT          │
+    │    Signal recovery         │ Zero non-signal frequencies      │
+    ├────────────────────────────┼──────────────────────────────────┤
+    │ 4. Template Matching       │ FFT cross-correlation            │
+    │    Fast pattern search     │ Convolution theorem              │
+    ├────────────────────────────┼──────────────────────────────────┤
+    │ 5. Spectrogram             │ STFT (windowed FFT)              │
+    │    Time-freq visualization │ Speech, music, radar analysis    │
+    ├────────────────────────────┼──────────────────────────────────┤
+    │ 6. Digital Filters         │ Windowed-sinc FIR design         │
+    │    Frequency sculpting     │ Convolution in time domain       │
+    └────────────────────────────┴──────────────────────────────────┘
+
+    Every one of these traces back to Euler's formula:
+
+        e^(iθ) = cos(θ) + i·sin(θ)
+
+    Fourier showed that all signals are sums of these spinning
+    exponentials. The FFT makes decomposition fast. Everything
+    above is a consequence.
+
+    ┌──────────────────────────────────────────────────────────┐
+    │  Repo 1 built tools from BIT representation:             │
+    │    fast math, hash tables, PRNGs, Bloom filters          │
+    │                                                          │
+    │  This chapter built tools from WAVE representation:      │
+    │    compression, synthesis, filtering, correlation         │
+    │                                                          │
+    │  They COMBINE in real systems:                           │
+    │    JPEG = DCT (waves) + Huffman (bits)                   │
+    │    WiFi = OFDM (waves) + LDPC (bits) + CRC (bits)       │
+    │    MRI  = FFT (waves) + floating point (bits)            │
+    └──────────────────────────────────────────────────────────┘
+
+    NEXT: What happens when the waves aren't just signals
+    but the fabric of computation itself?
+    → quantum_wave_functions.py
+    

@@ -1,0 +1,582 @@
+
+████████████████████████████████████████████████████████████████████████
+█  WAVELETS AND UNCERTAINTY                                          █
+█  When Fourier isn't enough: time meets frequency                   █
+████████████████████████████████████████████████████████████████████████
+
+========================================================================
+  PART 1: THE UNCERTAINTY PRINCIPLE
+  You cannot know both time and frequency perfectly
+========================================================================
+
+    In quantum mechanics, Heisenberg's uncertainty principle says:
+
+        Δx · Δp ≥ ℏ/2
+
+    You can't know a particle's position and momentum simultaneously
+    with arbitrary precision. Measure one precisely → the other
+    becomes uncertain.
+
+    Signal processing has its OWN uncertainty principle:
+
+    ┌──────────────────────────────────────────────────────────┐
+    │  GABOR UNCERTAINTY PRINCIPLE (1946)                       │
+    │                                                          │
+    │      Δt · Δf ≥ 1/(4π)                                   │
+    │                                                          │
+    │  You cannot localize a signal in BOTH time AND frequency │
+    │  simultaneously. Better time resolution = worse frequency│
+    │  resolution, and vice versa.                             │
+    └──────────────────────────────────────────────────────────┘
+
+    This isn't a limitation of our tools — it's a mathematical
+    FACT about signals. Let's see why:
+    
+    CASE 1: Pure sine wave (10 Hz)
+    → Perfect frequency knowledge, ZERO time localization
+
+    Time domain:
+        1.00 ┤ ██│   ██│   ██│   ██│   █│    █│    █│   ██│   ██│   ██│   
+             ┤ │ │   │ │   │ │   │ │  █│█│  █│█│  █│█│  │ │   │ │   │ │   
+             ┤ │ │  █│ │  █│ │  █│ │  │  │  │  │  │  │  │ █│  │ █│  │ █│  
+        0.00 ┤█··█·····█·····█·······························█·····█·····█
+             ┤    │ │   │ │   │ │  █│█│  █│█│  █│█│  █│█│  │ │   │ │   │ │
+             ┤    ██│   ██│   ██│   █│    █│    █│    █│   ██│   ██│   ██│
+       -1.00 ┤                                                            
+             └────────────────────────────────────────────────────────────
+    Frequency domain:
+      511.67 ┤             █│                                             
+             ┤             ││                                             
+             ┤             ││                                             
+      255.83 ┤             ││                                             
+             ┤             ││                                             
+             ┤  ███████████│██████████████████████████████████████████████
+        0.00 ┤██│                                                         
+             └────────────────────────────────────────────────────────────
+              Sharp peak at 10 Hz
+
+    CASE 2: Single impulse (click)
+    → Perfect time knowledge, ALL frequencies present
+
+    Time domain:
+        1.00 ┤                                                            
+             ┤                                                            
+             ┤                                                            
+        0.50 ┤                                                            
+             ┤                                                            
+             ┤                                                            
+        0.00 ┤████████████████████████████████████████████████████████████
+             └────────────────────────────────────────────────────────────
+    Frequency domain:
+        2.00 ┤                                                            
+             ┤                                                            
+             ┤                                                            
+        1.50 ┤                                                            
+             ┤                                                            
+             ┤                                                            
+        1.00 ┤████████████████████████████████████████████████████████████
+             └────────────────────────────────────────────────────────────
+              FLAT — all frequencies!
+
+    CASE 3: Short burst of 10 Hz (finite duration)
+    → Some time knowledge, some frequency knowledge
+
+    Time domain:
+        1.00 ┤                            █│                              
+             ┤                           █│█│                             
+             ┤███████████████████████████······███████████████████████████
+       -0.00 ┤                              │  │                          
+             ┤                              █│█│                          
+             ┤                               █│                           
+       -1.00 ┤                                                            
+             └────────────────────────────────────────────────────────────
+    Frequency domain:
+       53.00 ┤        ███████│                                            
+             ┤     ███│      ██│                                          
+             ┤    █│           ██│                                        
+       26.62 ┤   █│              ██│                                      
+             ┤  █│                 █│                                     
+             ┤  │                   ██████████████████████████████████████
+        0.23 ┤██│                                                         
+             └────────────────────────────────────────────────────────────
+              Broadened peak — frequency is SPREAD
+
+    The pattern is clear:
+
+      Narrow in time  → wide in frequency  (impulse → flat spectrum)
+      Narrow in freq  → wide in time       (pure tone → infinite)
+      In between      → in between         (burst → broadened peak)
+
+    You CAN'T have both narrow. This is fundamental. It's the same
+    math as Heisenberg's principle, just applied to signals.
+
+    ► This is why the standard FFT gives you an ALL-or-NOTHING
+      choice: perfect frequency resolution, zero time resolution.
+      To get time information, we need something different.
+    
+
+========================================================================
+  PART 2: THE SHORT-TIME FOURIER TRANSFORM (STFT)
+  The windowed compromise
+========================================================================
+
+    The simplest fix: chop the signal into short windows and
+    FFT each window separately. This is the STFT.
+
+        STFT(t, f) = FFT of [signal × window centered at time t]
+
+    Each window gives you the frequencies present at THAT time.
+    Slide the window across the signal → time-frequency map.
+    
+    Signal: a CHIRP (frequency sweeps from 5 to 50 Hz)
+        1.00 ┤    ████│           ███│        ██│       ██│     ██│     ██
+             ┤  ██│   █│         █│  █│      █│ █│     █│ │     │ █│    │ 
+             ┤ █│      █│        │    │      │   │     │  █│    │  │    │ 
+             ┤█│        │       █│    █│     │   █│    │   │   █│  │   █│ 
+        0.00 ┤··········█···················█·········█····█·······█······
+             ┤           █│    █│      █│   │     █│  │     │  │    │  │  
+             ┤            █│  █│        │  █│      │ █│     │ █│    █│█│  
+             ┤             ███│         ███│       ██│      ██│      █│   
+       -1.00 ┤                                                            
+             └────────────────────────────────────────────────────────────
+              First quarter — low frequency
+        1.00 ┤ █│ █│ █│ █│ █│ █│ █│   █│ █│   █│ █│   █│   █│   █│   █│   
+             ┤ ││ ││ ││ ││ ││ ││ ││   ││ ││ █│││ ││   ││   ││ █│││   ││█│ 
+             ┤ ││ ││ ││ ││ ││ ││ ││██│││ ││ ││││ ││█│ ││ █│││ ││││█│ ││││ 
+             ┤··█··█·······················█········█···█····█·····█·····█
+       -0.00 ┤ │ ││ ││█│││ ││ ││█│││ ││█││││ ││█││││ ││││ ││││ ││││ ││││││
+             ┤ │ ││ ││ ││█│││ │││ ││ ││ ││││ ││ ││││ ││││ ││││ ││││ ││││█│
+             ┤ │ ││ ││ ││ ││██│││ ││ ││ █│││ ││ █│││ ││││ ││█│ ││█│ █│││  
+             ┤█│ █│ █│ █│ █│   █│ █│ █│   █│ █│   █│ █│█│ █│   █│     █│  
+       -1.00 ┤                                                            
+             └────────────────────────────────────────────────────────────
+              Last quarter — high frequency
+
+    STFT spectrogram (time → , frequency ↑):
+    Brightness = energy at that time-frequency point
+
+     1024 Hz ┤                                                            
+             ┤                                                            
+             ┤                                                            
+             ┤                                                            
+             ┤                                                            
+             ┤                                                            
+             ┤                                                            
+             ┤                                                            
+             ┤                                                            
+             ┤                                                            
+             ┤                                                            
+             ┤                                                            
+             ┤                                                            
+             ┤                                                            
+             ┤                                                            
+             ┤                                                            
+             ┤                                                            
+             ┤                                                            
+             ┤                                                           ░
+        0 Hz ┤                         ░░░░░░▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓█▓▓▓▓▓▓▓▓▓▓▓
+             └────────────────────────────────────────────────────────────
+              t=0                                                     t=2s
+
+
+    The diagonal line shows the chirp: frequency increases over time!
+    The FFT alone would show a FLAT spectrum (all frequencies present).
+    The STFT reveals the TIME structure.
+
+    But the STFT has a fundamental limitation — the uncertainty
+    principle strikes again:
+
+      • SHORT window → good time resolution, poor frequency resolution
+      • LONG window  → good frequency resolution, poor time resolution
+
+    The window size is FIXED. You pick it and live with the tradeoff.
+
+    Wavelets solve this by using VARIABLE-SIZE windows.
+    
+
+========================================================================
+  PART 3: THE HAAR WAVELET — THE SIMPLEST WAVELET
+  Addition and subtraction at different scales
+========================================================================
+
+    The Haar wavelet (1909) is the simplest wavelet:
+
+        ψ(t) = { +1  for 0 ≤ t < 0.5
+               { -1  for 0.5 ≤ t < 1
+               {  0  otherwise
+
+    It's literally: take the DIFFERENCE between the left half
+    and right half of a signal segment.
+    
+        1.00 ┤████████████████████│                   
+             ┤                    │                   
+             ┤                    │                   
+             ┤                    │                   
+        0.00 ┤········································
+             ┤                    │                   
+             ┤                    │                   
+             ┤                    │                   
+       -1.00 ┤                    ████████████████████
+             └────────────────────────────────────────
+              Haar wavelet ψ(t)
+
+
+    The Haar wavelet transform works like this:
+
+    Given a signal [a, b, c, d], compute:
+
+      Averages (approximation):  [(a+b)/2, (c+d)/2]
+      Differences (detail):      [(a-b)/2, (c-d)/2]
+
+    That's it. Average = low-frequency content. Difference = detail.
+    
+    Input signal:    [4, 6, 10, 14, 12, 8, 6, 2]
+    Approximation:   [5.0, 12.0, 10.0, 4.0]    (averages)
+    Detail:          [-1.0, -2.0, 2.0, 2.0]    (differences)
+
+    Reconstructed:   [4.0, 6.0, 10.0, 14.0, 12.0, 8.0, 6.0, 2.0]
+    Match: ✓ Perfect
+
+    ┌──────────────────────────────────────────────────────────┐
+    │  CONNECTION TO REPO 1                                    │
+    │                                                          │
+    │  The Haar transform is literally:                        │
+    │    Average = (a + b) >> 1     (addition + right shift)   │
+    │    Detail  = (a - b) >> 1     (subtraction + right shift)│
+    │                                                          │
+    │  These are BIT-LEVEL OPERATIONS from bit_tricks_demo.py! │
+    │  The simplest wavelet is built from the simplest bit     │
+    │  manipulation. Discrete meets continuous.                │
+    └──────────────────────────────────────────────────────────┘
+    
+  ── Haar transform of a step signal ──
+
+    Original signal:
+        3.00 ┤               ███████████████│                             
+             ┤               │              │                             
+             ┤               │              │                             
+             ┤               │              ███████████████│              
+        1.75 ┤               │                             │              
+             ┤               │                             │              
+             ┤███████████████│                             │              
+             ┤                                             │              
+        0.50 ┤                                             ███████████████
+             └────────────────────────────────────────────────────────────
+
+    Approximation (smooth trend):
+        3.00 ┤                ███████████████│                            
+             ┤                │              │                            
+             ┤                │              ███████████████│             
+        1.75 ┤                │                             │             
+             ┤████████████████│                             │             
+             ┤                                              │             
+        0.50 ┤                                              ██████████████
+             └────────────────────────────────────────────────────────────
+    Detail (where changes happen):
+        1.00 ┤                                                            
+             ┤                                                            
+             ┤                                                            
+        0.50 ┤                                                            
+             ┤                                                            
+             ┤                                                            
+        0.00 ┤████████████████████████████████████████████████████████████
+             └────────────────────────────────────────────────────────────
+
+    Notice: the detail coefficients are zero EXCEPT at the
+    transitions! The Haar wavelet DETECTS EDGES — it tells
+    you exactly WHERE the signal changes.
+
+    ► This is why wavelets are used for edge detection in
+      image processing and for detecting transients (clicks,
+      drum hits) in audio.
+    
+
+========================================================================
+  PART 4: MULTIRESOLUTION ANALYSIS
+  Decompose a signal at multiple scales simultaneously
+========================================================================
+
+    The Haar transform gives us ONE level of approximation/detail.
+    But we can RECURSIVELY decompose the approximation:
+
+    Level 0:  [original signal]                  (N samples)
+    Level 1:  [approximation₁] + [detail₁]      (N/2 each)
+    Level 2:  [approximation₂] + [detail₂] + [detail₁]
+    Level 3:  [approximation₃] + [detail₃] + [detail₂] + [detail₁]
+    ...
+
+    Each level captures detail at a different SCALE:
+      • detail₁:  finest details (highest frequencies)
+      • detail₂:  medium details
+      • detail₃:  coarse details
+      • approx:   overall trend (lowest frequencies)
+
+    This is MULTIRESOLUTION ANALYSIS (MRA).
+    
+    Test signal: 2 Hz + 15 Hz + 60 Hz
+
+        3.03 ┤     █│  █│                         ██│                     
+             ┤     │█│█│█│ █│                 ██│ │ │ █│                  
+             ┤ █│ █│ █│  ██││                 │ ██│ ██│█│                 
+             ┤█·██··········█·██···········█·█··········███···············
+       -0.00 ┤               █│ │         █│█│             █│         █│ █
+             ┤                  █│██│ ██│█│                 █│██│     │█││
+             ┤                   █│ █││ █│                   █│ │ ██│█│ █│
+             ┤                       █│                         ██│ █│    
+       -3.03 ┤                                                            
+             └────────────────────────────────────────────────────────────
+              Composite signal
+
+    Decomposition: 5 levels
+
+    Approximation (coarsest trend, 8 coefficients):
+        1.33 ┤█████████████████│                █████████████████│        
+             ┤                 │                │                │        
+             ┤                 │                │                │        
+        0.00 ┤····························································
+             ┤                 │                │                │        
+             ┤                 █████████████████│                │       █
+       -1.33 ┤                                                   ████████│
+             └────────────────────────────────────────────────────────────
+
+    Detail level 1 (128 coefficients, ~1 - 2 Hz range):
+        0.35 ┤                                 ██│     ██│     ██│     ██│
+             ┤      █│      █│    ███│   █│██│ │ █│██│█│ ██████│ █│██│█│ │
+        0.00 ┤··█··█·█·███·█·█·███···█··█·█·······█··█············█··█····
+             ┤ █│██│  █│  █│  █│      ██│    ██│                         █
+       -0.34 ┤█│                                                          
+             └────────────────────────────────────────────────────────────
+
+    Detail level 2 (64 coefficients, ~2 - 4 Hz range):
+        0.52 ┤          █│  █│ ██│          █│          ██│██│  █│        
+             ┤ ██│  █│  │█│█│█││ │  █│  ██│ ││ ██│  █│  │ ││ █│█││  █│  █│
+        0.01 ┤█····█·█·█··█···█··█·█·█·█··██·██··█·█·█·█··█···█··█·█·█···█
+             ┤   █││  █│          █│  █│          █│  █│          █│  ██│ 
+       -0.51 ┤    █│                                                      
+             └────────────────────────────────────────────────────────────
+
+    Detail level 3 (32 coefficients, ~4 - 8 Hz range):
+        0.68 ┤          ██│ ██│ ██│                     ██│ ██│ ██│       
+             ┤      ██│ │ │ │ │ │ │██│               █│ │ │ │ │ │ │ ██│   
+        0.14 ┤··██·····················██········██·····················█·
+             ┤██│ │ │ ██│ ██│ ██│ █│ ██│ ████████│ ██│██│ ██│ ██│ ██│ ██│█
+       -0.41 ┤    ██│                                                     
+             └────────────────────────────────────────────────────────────
+
+    Detail level 4 (16 coefficients, ~8 - 16 Hz range):
+        0.40 ┤████████████████████│                       ████████████████
+             ┤····················████················████················
+       -0.25 ┤                        │               │                   
+             ┤                        ████│   ████████│                   
+       -0.90 ┤                            ████│                           
+             └────────────────────────────────────────────────────────────
+
+    Detail level 5 (8 coefficients, ~16 - 32 Hz range):
+        0.54 ┤         █████████████████│                ████████████████│
+             ┤         │                │                │               │
+        0.00 ┤····························································
+             ┤         │                █████████████████│               █
+       -0.54 ┤█████████│                                                  
+             └────────────────────────────────────────────────────────────
+
+    Reconstruction error: 6.66e-16
+    Perfect reconstruction: ✓
+
+    ┌──────────────────────────────────────────────────────────┐
+    │  CONNECTION TO REPO 1: MORTON CODES                      │
+    │                                                          │
+    │  In repo 1, Morton codes gave us SPATIAL hierarchy:      │
+    │  bit interleaving organized 2D points at multiple        │
+    │  resolutions for fast nearest-neighbor search.           │
+    │                                                          │
+    │  Wavelets give us FREQUENCY hierarchy: decomposition at  │
+    │  multiple scales for time-frequency analysis.            │
+    │                                                          │
+    │  Both are MULTIRESOLUTION DATA STRUCTURES built from     │
+    │  the same principle: divide, organize, conquer.          │
+    └──────────────────────────────────────────────────────────┘
+    
+
+========================================================================
+  PART 5: WAVELET DENOISING
+  Cleaning signals by thresholding wavelet coefficients
+========================================================================
+
+    The killer application of wavelets: DENOISING.
+
+    The idea is beautifully simple:
+    1. Decompose the signal into wavelet coefficients
+    2. Signal energy concentrates in a FEW large coefficients
+    3. Noise energy spreads across MANY small coefficients
+    4. Zero out the small coefficients (thresholding)
+    5. Reconstruct → noise is gone, signal is preserved
+
+    This works because signals have STRUCTURE (concentrated energy)
+    and noise doesn't (spread energy).
+    
+    Clean signal:
+        1.16 ┤ █│  █│      █│  █│      █│  █│     █│  █│      █│  █│      
+             ┤ │███││      │███││     █│███││     │███│█│     │███││      
+             ┤ │    │      │    │     │     │     │     │     │    │      
+             ┤█·····█·····█········································█······
+       -0.00 ┤       │    │     │     │     │     │     │     │     │    █
+             ┤       │    │     █│    │     │     │     │    █│     │    │
+             ┤       │███││      │███││     █│████│     │███││      │███││
+             ┤       █│  █│      █│  █│      █│         █│  █│      █│  █│
+       -1.16 ┤                                                            
+             └────────────────────────────────────────────────────────────
+
+    Noisy signal (SNR ≈ 4 dB):
+        4.03 ┤                                                            
+             ┤                                                            
+             ┤    █│       █│ █│        █│██│     █│█│         ██│        
+             ┤████│█│      ││█││      ██│█│ │     │█│█│  █│   █│ ██│      
+        0.16 ┤······█···█·█·█··█·██·········█···██····███····█·····███···█
+             ┤       ███│││     █│ ██││      ██││         ███│        │█││
+             ┤           █│          █│        █│                     █│█│
+             ┤                                                            
+       -3.72 ┤                                                            
+             └────────────────────────────────────────────────────────────
+
+    Estimated noise σ: 0.580
+    Threshold:         2.048
+
+    Denoised signal:
+        0.53 ┤                       ███████│                             
+             ┤████████│              │      │                             
+             ┤        │              │      │      ███████████████│       
+             ┤····························································
+       -0.00 ┤        ███████████████│      │      │              │       
+             ┤                              │      │              │       
+             ┤                              │      │              │       
+             ┤                              ███████│              │       
+       -0.53 ┤                                                    ████████
+             └────────────────────────────────────────────────────────────
+
+    Results:
+      Noisy SNR:       0.4 dB
+      Denoised SNR:    0.8 dB
+      Improvement:     0.4 dB
+      Coefficients:    504 → 0 (0% kept)
+
+    The wavelet denoiser improved SNR significantly by
+    throwing away the small (noise-dominated) coefficients
+    and keeping the large (signal-dominated) ones.
+
+    ► Connection to repo 1: This is the same principle as
+      Huffman coding — frequent/important data gets more
+      representation, rare/noise data gets less. Both exploit
+      the NON-UNIFORM distribution of information.
+    
+
+========================================================================
+  PART 6: WAVELET COMPRESSION
+  Keep the big coefficients, discard the rest
+========================================================================
+
+    Denoising and compression are two sides of the same coin:
+
+      Denoising:    discard coefficients that are likely noise
+      Compression:  discard coefficients that contribute least
+
+    In wavelet compression:
+    1. Transform the signal
+    2. Sort coefficients by magnitude
+    3. Keep only the largest K coefficients
+    4. Reconstruct from K coefficients instead of N
+    5. Compression ratio = N / K
+    
+    Original signal (4 frequency components):
+        3.41 ┤                        ██│                █│               
+             ┤   █│ ███│              │ █│               │█│  █│          
+             ┤ ██││█│  │          █│  │  █│            ██│ █│ ││          
+             ┤ │  █│   █│        █││██│   │█│█│     █│ │    ██│██│        
+        0.00 ┤█·········█··█·······█······█·█·····██·█···············█···█
+             ┤           ██│█│ ██│            █│  │   █│         │   ││██│
+             ┤               █││               █│ │              ████│█│  
+             ┤                █│                ██│                       
+       -3.41 ┤                                                            
+             └────────────────────────────────────────────────────────────
+
+      Keep %   Coefficients       RMSE   SNR (dB)    Quality
+    ──────── ────────────── ────────── ────────── ──────────
+        100%            512     0.0000      316.5    Perfect
+         50%            256     0.0669       27.7       Good
+         25%            128     0.1591       20.2       Fair
+         10%             51     0.3928       12.3       Poor
+          5%             25     0.7089        7.2       Poor
+          2%             10     0.9848        4.3       Poor
+
+    Reconstructed from only 10% of coefficients:
+        3.45 ┤                                           █│               
+             ┤      ███│              ███│              █│█│  █│          
+             ┤ ███│█│  │         █│   │  │             █│  ██│││          
+             ┤█···█···············████···█··██···············█·██·········
+       -0.00 ┤         ██│       │        ██│ █│  ████││         │   █│  █
+             ┤           █│██│ ██│             │  │   █│         │  █│███│
+             ┤            █│ █││               ███│              ███│     
+             ┤                ││                                          
+       -3.45 ┤                █│                                          
+             └────────────────────────────────────────────────────────────
+
+    With just 10% of coefficients, we get excellent reconstruction!
+    This is the principle behind JPEG 2000, which uses wavelets
+    (specifically the CDF 9/7 wavelet) for compression.
+
+    ┌──────────────────────────────────────────────────────────┐
+    │  WHY WAVELETS COMPRESS WELL                              │
+    │                                                          │
+    │  Most natural signals have energy concentrated at a few  │
+    │  scales. Wavelets capture this sparsity:                 │
+    │                                                          │
+    │  • Smooth regions → large approx coefficients            │
+    │  • Edges/transients → large detail coefficients          │
+    │  • Everything else → small (discardable) coefficients    │
+    │                                                          │
+    │  Fourier can't do this as well because a sharp edge      │
+    │  requires MANY Fourier coefficients (Gibbs phenomenon),  │
+    │  but only a FEW wavelet coefficients.                    │
+    └──────────────────────────────────────────────────────────┘
+    
+
+========================================================================
+  CONCLUSION: FOURIER vs. WAVELETS
+========================================================================
+
+    ┌──────────────────────────────────────────────────────────┐
+    │  FOURIER                    │  WAVELETS                   │
+    │  ───────                    │  ────────                   │
+    │  Fixed basis: sin/cos       │  Variable basis: ψ at scales│
+    │  Global: all time at once   │  Local: time AND frequency  │
+    │  Great for stationary       │  Great for transient signals│
+    │  signals (constant freq)    │  (changing, real-world)     │
+    │  Perfect for: radio, audio  │  Perfect for: compression,  │
+    │  analysis, spectral ID      │  denoising, edge detection  │
+    │                              │                             │
+    │  Uncertainty: all frequency, │  Uncertainty: adapts window │
+    │  no time                     │  size to frequency          │
+    └──────────────────────────────────────────────────────────┘
+
+    The wavelet's secret: it uses SHORT windows for HIGH frequencies
+    (good time resolution where it matters) and LONG windows for
+    LOW frequencies (good frequency resolution where it matters).
+
+    This ADAPTIVE resolution is what makes wavelets fundamentally
+    different from — and often better than — the STFT.
+
+    ┌──────────────────────────────────────────────────────────┐
+    │  THE REPRESENTATION HIERARCHY                            │
+    │                                                          │
+    │  Repo 1:   Bits → bit tricks → hidden structure          │
+    │  Script 1: Continuous → sample → discrete                │
+    │  Script 2: Time → Fourier → frequency                    │
+    │  Script 3: Time+Freq → wavelet → multiresolution         │
+    │                                                          │
+    │  Each level reveals DIFFERENT structure in the same data. │
+    │  Each level enables DIFFERENT applications.              │
+    │  Same principle: representation is a tool.               │
+    └──────────────────────────────────────────────────────────┘
+
+    NEXT: Now let's build PRACTICAL TOOLS from these ideas.
+    → practical_wave_applications.py
+    

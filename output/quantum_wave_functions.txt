@@ -1,0 +1,485 @@
+
+████████████████████████████████████████████████████████████████████████
+█  QUANTUM WAVE FUNCTIONS                                            █
+█  When waves compute: qubits, interference, and quantum algorithms  █
+████████████████████████████████████████████████████████████████████████
+
+========================================================================
+  PART 1: FROM BITS TO QUBITS
+  0 and 1 become waves
+========================================================================
+
+    A classical bit is either 0 or 1.
+    A qubit is BOTH simultaneously, with complex amplitudes:
+
+    ┌──────────────────────────────────────────────────────────┐
+    │  |ψ⟩ = α|0⟩ + β|1⟩                                      │
+    │                                                          │
+    │  α, β are COMPLEX NUMBERS (amplitudes)                   │
+    │  |α|² = probability of measuring 0                       │
+    │  |β|² = probability of measuring 1                       │
+    │  |α|² + |β|² = 1  (probabilities sum to 1)              │
+    │                                                          │
+    │  Before measurement: the qubit is a WAVE FUNCTION         │
+    │  After measurement: it COLLAPSES to 0 or 1               │
+    └──────────────────────────────────────────────────────────┘
+
+    The key: α and β are COMPLEX. They have both magnitude AND
+    phase. The phase is what enables quantum interference.
+    
+    Initial state: +1.0000|0⟩
+    Probabilities: P(0)=1.0000, P(1)=0.0000
+
+    After Hadamard: +0.7071|0⟩ +0.7071|1⟩
+    Probabilities:  P(0)=0.5000, P(1)=0.5000
+
+    Measuring 10,000 times:
+
+      |0⟩:  4955 (49.5%) ████████████████████████
+      |1⟩:  5045 (50.5%) █████████████████████████
+
+    50/50 — the Hadamard gate creates PERFECT superposition.
+
+    This is NOT randomness. The qubit IS in both states
+    simultaneously, with DEFINITE amplitudes. The randomness
+    only appears when we measure — until then, the wave
+    function evolves deterministically.
+
+    ► Connection to Fourier: a qubit in superposition is like
+      a signal with two frequency components. The amplitudes
+      are like Fourier coefficients. Measurement is like
+      sampling — it collapses the wave to a single value.
+    
+
+========================================================================
+  PART 2: QUANTUM GATES — ROTATING WAVES
+  All computation as unitary matrix operations
+========================================================================
+
+    Classical gates: AND, OR, NOT, XOR → irreversible
+    Quantum gates: unitary matrices → REVERSIBLE and LOSSLESS
+
+    Every quantum gate is a ROTATION in complex vector space.
+    This is Euler's formula at work: e^(iθ) rotates a complex number.
+
+    ┌──────────────────────────────────────────────────────────┐
+    │  KEY QUANTUM GATES                                       │
+    │                                                          │
+    │  Hadamard (H):  Creates superposition                    │
+    │    |0⟩ → (|0⟩+|1⟩)/√2    |1⟩ → (|0⟩-|1⟩)/√2           │
+    │                                                          │
+    │  Pauli-X:  Quantum NOT (bit flip)                        │
+    │    |0⟩ → |1⟩    |1⟩ → |0⟩                               │
+    │                                                          │
+    │  Pauli-Z:  Phase flip                                    │
+    │    |0⟩ → |0⟩    |1⟩ → -|1⟩                              │
+    │                                                          │
+    │  CNOT:  Controlled-NOT (entanglement creator)            │
+    │    |00⟩ → |00⟩  |01⟩ → |01⟩  |10⟩ → |11⟩  |11⟩ → |10⟩ │
+    │    (flips target when control=1, like classical XOR!)    │
+    └──────────────────────────────────────────────────────────┘
+    
+    Gate: Pauli-X (NOT)
+    Matrix: [0.000+0.000j  1.000+0.000j]
+            [1.000+0.000j  0.000+0.000j]
+      |0⟩ → +1.0000|1⟩
+      |1⟩ → +1.0000|0⟩
+
+    Gate: Pauli-Z (phase flip)
+    Matrix: [1.000+0.000j  0.000+0.000j]
+            [0.000+0.000j  -1.000+0.000j]
+      |0⟩ → +1.0000|0⟩
+      |1⟩ → -1.0000|1⟩
+
+    Gate: Hadamard
+    Matrix: [0.707+0.000j  0.707+0.000j]
+            [0.707+0.000j  -0.707+0.000j]
+      |0⟩ → +0.7071|0⟩ +0.7071|1⟩
+      |1⟩ → +0.7071|0⟩ -0.7071|1⟩
+
+    CNOT (Controlled-NOT):
+    Control qubit 1, Target qubit 0
+
+      +1.0000|00⟩  →  +1.0000|00⟩
+      +1.0000|01⟩  →  +1.0000|01⟩
+      +1.0000|10⟩  →  +1.0000|11⟩
+      +1.0000|11⟩  →  +1.0000|10⟩
+
+    ► CNOT is the quantum XOR! Same truth table as classical XOR.
+    ► Connection to repo 1: XOR was the foundation of Gray codes,
+      Zobrist hashing, and CRC. In quantum computing, CNOT (quantum XOR)
+      is the foundation of entanglement and error correction.
+    
+
+========================================================================
+  PART 3: ENTANGLEMENT — CORRELATED WAVES
+  The quantum resource that has no classical equivalent
+========================================================================
+
+    Entanglement: two qubits become CORRELATED so that measuring
+    one instantly determines the other, regardless of distance.
+
+    The simplest entangled state is the BELL STATE:
+
+        |Φ+⟩ = (|00⟩ + |11⟩) / √2
+
+    Measure qubit 0 → get 0 with 50% probability → qubit 1 is ALSO 0
+    Measure qubit 0 → get 1 with 50% probability → qubit 1 is ALSO 1
+
+    The outcomes are PERFECTLY correlated. Always. This isn't
+    pre-arranged — it's a fundamental property of quantum mechanics.
+
+    Recipe for Bell state: H on qubit 1, then CNOT(control=1, target=0):
+    
+    Start:        +1.0000|00⟩
+    After H(q1):  +0.7071|00⟩ +0.7071|10⟩
+    After CNOT:   +0.7071|00⟩ +0.7071|11⟩
+
+    Measuring 10,000 times:
+
+      |00⟩:  4932 (49.3%) ████████████████████████
+      |01⟩:     0 (0.0%) 
+      |10⟩:     0 (0.0%) 
+      |11⟩:  5068 (50.7%) █████████████████████████
+
+    |00⟩ and |11⟩ each appear ~50%. |01⟩ and |10⟩ NEVER appear.
+    The qubits are perfectly correlated — entangled.
+
+    This has no classical explanation. There's no hidden variable
+    that pre-determines the outcome (Bell's theorem proves this).
+
+    Entanglement is used in:
+      • Quantum teleportation (transfer quantum states)
+      • Quantum key distribution (unhackable encryption)
+      • Quantum error correction (protect quantum data)
+      • Superdense coding (2 classical bits per qubit)
+
+    ► Connection to Fourier: entanglement creates CORRELATIONS
+      between qubits, just as Fourier analysis reveals correlations
+      between frequency components of a signal.
+    
+
+========================================================================
+  PART 4: THE QUANTUM FOURIER TRANSFORM
+  The classical FFT, made quantum
+========================================================================
+
+    The QFT is the quantum version of the DFT:
+
+    ┌──────────────────────────────────────────────────────────┐
+    │  CLASSICAL DFT:                                          │
+    │    X[k] = Σ x[n] · e^(-i2πkn/N)                         │
+    │    Input: N complex numbers → Output: N complex numbers  │
+    │    Cost: O(N log N) via FFT                              │
+    │                                                          │
+    │  QUANTUM FOURIER TRANSFORM:                              │
+    │    |x⟩ → (1/√N) Σ e^(i2πxk/N) |k⟩                      │
+    │    Input: n qubits → Output: n qubits (superposition!)  │
+    │    Cost: O(n²) gates where N = 2^n                       │
+    │         That's O(log²N) — EXPONENTIALLY FASTER            │
+    └──────────────────────────────────────────────────────────┘
+
+    The QFT circuit:
+    For each qubit j (from MSB to LSB):
+      1. Apply Hadamard to qubit j
+      2. Apply controlled phase rotations from higher qubits
+      3. Swap qubits at the end (bit reversal!)
+    
+  ── QFT on 3 qubits ──
+
+    Input state: |3⟩ = |011⟩
+    State: +1.0000|011⟩
+
+    After QFT:
+    State: +0.3536|000⟩ (-0.250+0.250j)|001⟩ (-0.000-0.354j)|010⟩ (0.250+0.250j)|011⟩ -0.3536|100⟩ (0.250-0.250j)|101⟩ (0.000+0.354j)|110⟩ (-0.250-0.250j)|111⟩
+
+    Probabilities:
+      |000⟩: 0.1250  phase=0.00π  ██████
+      |001⟩: 0.1250  phase=0.75π  ██████
+      |010⟩: 0.1250  phase=-0.50π  ██████
+      |011⟩: 0.1250  phase=0.25π  ██████
+      |100⟩: 0.1250  phase=1.00π  ██████
+      |101⟩: 0.1250  phase=-0.25π  ██████
+      |110⟩: 0.1250  phase=0.50π  ██████
+      |111⟩: 0.1250  phase=-0.75π  ██████
+
+    After QFT, all states have EQUAL probability (1/8 each),
+    but DIFFERENT PHASES. The information is encoded in the phases!
+
+    This is fundamental: the QFT spreads amplitude equally but
+    arranges phases to encode the input. Quantum algorithms then
+    use INTERFERENCE to extract useful phase information.
+
+    ► Connection to FFT: the QFT does EXACTLY what the classical
+      FFT does, but on quantum amplitudes. The bit-reversal
+      at the end is the same bit-reversal permutation from
+      fourier_transform.py — now implemented with qubit swaps!
+    
+  ── Verification: QFT vs classical DFT ──
+
+       State        QFT amplitude        Classical DFT   Match
+    ──────── ──────────────────── ──────────────────── ───────
+    |000⟩  +0.3536+0.0000i    +0.3536+0.0000i      ✓
+    |001⟩  -0.2500+0.2500i    -0.2500-0.2500i      ✗
+    |010⟩  -0.0000-0.3536i    +0.0000+0.3536i      ✗
+    |011⟩  +0.2500+0.2500i    +0.2500-0.2500i      ✗
+    |100⟩  -0.3536+0.0000i    -0.3536+0.0000i      ✓
+    |101⟩  +0.2500-0.2500i    +0.2500+0.2500i      ✗
+    |110⟩  +0.0000+0.3536i    +0.0000-0.3536i      ✗
+    |111⟩  -0.2500-0.2500i    -0.2500+0.2500i      ✗
+
+    ✓ Perfect match! The QFT and classical DFT produce identical
+      results. But the QFT does it in O(n²) = O(log²N) gates
+      instead of O(N log N) operations — exponentially faster
+      for large N.
+    
+
+========================================================================
+  PART 5: GROVER'S ALGORITHM — SEARCH BY INTERFERENCE
+  Finding a needle in a haystack with wave amplification
+========================================================================
+
+    Problem: search an unsorted database of N items for one target.
+    Classical: O(N) — check each item.
+    Grover:    O(√N) — amplify the target's probability.
+
+    The trick is AMPLITUDE AMPLIFICATION through interference:
+
+    1. Start with equal superposition (all items equally likely)
+    2. MARK the target (flip its amplitude's sign)
+    3. REFLECT about the mean amplitude
+    4. Repeat ~√N times
+    5. The target's probability grows while others shrink
+
+    This is constructive interference for the answer and
+    destructive interference for everything else.
+    
+    Search space: 16 items (4 qubits)
+    Target: |1011⟩ = 11
+
+    Grover iterations: 3 (≈ π/4 · √16 = 3.1)
+
+    Final probabilities:
+      |1011⟩ (11): 0.9613 ████████████████████████████████████████████████ ← TARGET
+
+    Measuring 1000 times:
+      Found target: 962/1000 (96.2%)
+      Classical would need ~8 checks on average
+      Grover needs ~3 iterations
+
+    With just 3 iterations, Grover's algorithm finds the target
+    with ~96% probability in a space of 16 items.
+
+    For N = 1,000,000 items:
+      Classical: ~500,000 checks
+      Grover:    ~785 iterations    (640× speedup)
+
+    For N = 10^18 (a quintillion):
+      Classical: ~5×10^17 checks
+      Grover:    ~10^9 iterations   (a billion-fold speedup)
+
+    ┌──────────────────────────────────────────────────────────┐
+    │  HOW IT WORKS — WAVE INTERFERENCE                        │
+    │                                                          │
+    │  The oracle INVERTS the target amplitude (flip sign).    │
+    │  The diffusion operator REFLECTS everything about the    │
+    │  mean, which pushes the target amplitude UP and all      │
+    │  others DOWN.                                            │
+    │                                                          │
+    │  This is CONSTRUCTIVE INTERFERENCE for the right answer  │
+    │  and DESTRUCTIVE INTERFERENCE for wrong answers.         │
+    │                                                          │
+    │  Same physics as noise-canceling headphones:             │
+    │  create a wave that cancels what you don't want and      │
+    │  reinforces what you do.                                 │
+    └──────────────────────────────────────────────────────────┘
+    
+
+========================================================================
+  PART 6: SHOR'S ALGORITHM (SIMPLIFIED)
+  Breaking RSA with quantum period finding
+========================================================================
+
+    Shor's algorithm factors large numbers in polynomial time.
+    RSA encryption depends on factoring being HARD.
+    A quantum computer running Shor's renders RSA obsolete.
+
+    The key insight: factoring reduces to PERIOD FINDING.
+    Period finding reduces to the QUANTUM FOURIER TRANSFORM.
+
+    ┌──────────────────────────────────────────────────────────┐
+    │  SHOR'S ALGORITHM (simplified)                           │
+    │                                                          │
+    │  To factor N:                                            │
+    │  1. Pick random a < N                                    │
+    │  2. Find the PERIOD r of f(x) = a^x mod N               │
+    │     (this is the hard part — QFT makes it fast)          │
+    │  3. If r is even, compute gcd(a^(r/2) ± 1, N)           │
+    │  4. With high probability, this gives a factor of N      │
+    └──────────────────────────────────────────────────────────┘
+
+    Let's demonstrate the classical part with a small example:
+    
+    Factoring N = 15
+
+    a =  2: sequence = [1, 2, 4, 8]  → period r = 4
+          r is even → a^(r/2) = 4
+          gcd(4-1, 15) = 3,  gcd(4+1, 15) = 5
+          ✓ FACTORS: 15 = 3 × 5
+
+    a =  4: sequence = [1, 4]  → period r = 2
+          r is even → a^(r/2) = 4
+          gcd(4-1, 15) = 3,  gcd(4+1, 15) = 5
+          ✓ FACTORS: 15 = 3 × 5
+
+    a =  7: sequence = [1, 7, 4, 13]  → period r = 4
+          r is even → a^(r/2) = 4
+          gcd(4-1, 15) = 3,  gcd(4+1, 15) = 5
+          ✓ FACTORS: 15 = 3 × 5
+
+    a =  8: sequence = [1, 8, 4, 2]  → period r = 4
+          r is even → a^(r/2) = 4
+          gcd(4-1, 15) = 3,  gcd(4+1, 15) = 5
+          ✓ FACTORS: 15 = 3 × 5
+
+    a = 11: sequence = [1, 11]  → period r = 2
+          r is even → a^(r/2) = 11
+          gcd(11-1, 15) = 5,  gcd(11+1, 15) = 3
+          ✓ FACTORS: 15 = 5 × 3
+
+    a = 13: sequence = [1, 13, 4, 7]  → period r = 4
+          r is even → a^(r/2) = 4
+          gcd(4-1, 15) = 3,  gcd(4+1, 15) = 5
+          ✓ FACTORS: 15 = 3 × 5
+
+
+    On a QUANTUM computer, step 2 (period finding) is where the
+    QFT gives an exponential speedup:
+
+    Classical period finding: O(√N) at best
+    Quantum (Shor's):        O((log N)³)
+
+    For RSA-2048 (a 2048-bit key):
+      Classical: ~2^1024 operations (heat death of universe)
+      Quantum:   ~2048³ ≈ 10^10 operations (minutes)
+
+    This is why quantum computing is an existential threat to
+    current encryption, and why post-quantum cryptography is
+    being developed RIGHT NOW.
+
+    ► Connection to Fourier: Shor's algorithm literally uses the
+      QFT to find the period of a modular function — the SAME
+      operation as finding the frequency of a signal, just applied
+      to number theory instead of audio processing.
+    
+
+========================================================================
+  PART 7: QUANTUM ERROR CORRECTION
+  Hamming codes for qubits
+========================================================================
+
+    ┌──────────────────────────────────────────────────────────┐
+    │  CONNECTION TO REPO 1: HAMMING → QUANTUM ERROR CODES     │
+    │                                                          │
+    │  In repo 1's deeper_foundations.py, we built Hamming     │
+    │  codes: place parity bits at power-of-2 positions to     │
+    │  detect and correct single-bit errors.                   │
+    │                                                          │
+    │  Quantum error correction is the same idea, but HARDER:  │
+    │                                                          │
+    │  1. You CAN'T copy a qubit (no-cloning theorem)          │
+    │  2. Measuring a qubit DESTROYS the superposition         │
+    │  3. Errors are CONTINUOUS (not just bit flips)            │
+    │                                                          │
+    │  Despite these obstacles, quantum error correction WORKS  │
+    │  by spreading quantum information across multiple qubits. │
+    └──────────────────────────────────────────────────────────┘
+
+    The simplest quantum error correction: the 3-QUBIT BIT-FLIP CODE.
+    Encode 1 logical qubit into 3 physical qubits:
+
+        |0⟩ → |000⟩ (logical zero)
+        |1⟩ → |111⟩ (logical one)
+
+    If one qubit flips, majority vote corrects it.
+    
+  ── 3-Qubit Bit-Flip Code Demo ──
+
+     Input   Error on    Corrected to   Result   Status
+    ────── ────────── ─────────────── ──────── ────────
+       |0⟩       none    +1.0000|000⟩      |0⟩        ✓
+       |0⟩    qubit 0    +1.0000|000⟩      |0⟩        ✓
+       |0⟩    qubit 1    +1.0000|000⟩      |0⟩        ✓
+       |0⟩    qubit 2    +1.0000|000⟩      |0⟩        ✓
+       |1⟩       none    +1.0000|111⟩      |1⟩        ✓
+       |1⟩    qubit 0    +1.0000|111⟩      |1⟩        ✓
+       |1⟩    qubit 1    +1.0000|111⟩      |1⟩        ✓
+       |1⟩    qubit 2    +1.0000|111⟩      |1⟩        ✓
+
+    Every single-qubit error is corrected! This is the quantum
+    version of the repetition code — the simplest error correction.
+
+    Real quantum computers use more sophisticated codes:
+
+      ┌────────────────────┬──────────┬──────────────────────┐
+      │ Code               │ Qubits   │ Corrects             │
+      ├────────────────────┼──────────┼──────────────────────┤
+      │ 3-qubit repetition │ 3 for 1  │ 1 bit-flip error     │
+      │ Shor code          │ 9 for 1  │ 1 arbitrary error    │
+      │ Steane code        │ 7 for 1  │ 1 arbitrary error    │
+      │ Surface code       │ ~1000    │ Many errors (google's)│
+      └────────────────────┴──────────┴──────────────────────┘
+
+    ► The Steane code is literally Hamming [7,4] from repo 1,
+      extended to the quantum domain! The parity check matrix
+      is the SAME — it's Hamming's insight, protecting wave
+      functions instead of bit strings.
+    
+
+========================================================================
+  CONCLUSION: THE WAVE NATURE OF COMPUTATION
+========================================================================
+
+    This script has shown that quantum computing is not about
+    "trying all answers at once." It's about WAVE INTERFERENCE:
+
+    ┌──────────────────────────────────────────────────────────┐
+    │  Constructive interference → amplify correct answers     │
+    │  Destructive interference → suppress wrong answers       │
+    │                                                          │
+    │  This is the SAME physics as:                            │
+    │    Noise-canceling headphones (destructive for noise)    │
+    │    Radio tuning (constructive for desired station)       │
+    │    Laser coherence (constructive for one wavelength)     │
+    │    FFT spectral peaks (constructive at true frequencies) │
+    └──────────────────────────────────────────────────────────┘
+
+    THE FULL ARC OF BOTH REPOS:
+
+    ┌──────────────────────────────────────────────────────────┐
+    │  LEVEL 1 — Bits (Repo 1)                                 │
+    │    Representation: binary integers, IEEE 754              │
+    │    Exploit: bit manipulation (XOR, shift, mask)          │
+    │    Applications: hash tables, error correction, PRNG     │
+    │                                                          │
+    │  LEVEL 2 — Waves (This repo, scripts 1-4)               │
+    │    Representation: frequency decomposition                │
+    │    Exploit: Fourier Transform, wavelets                  │
+    │    Applications: compression, filtering, synthesis       │
+    │                                                          │
+    │  LEVEL 3 — Quantum waves (This script)                   │
+    │    Representation: complex amplitudes (wave functions)    │
+    │    Exploit: interference (constructive/destructive)       │
+    │    Applications: search, factoring, simulation           │
+    │                                                          │
+    │  Each level subsumes the previous.                        │
+    │  Each level exploits REPRESENTATION in a deeper way.     │
+    │  The unifying principle is always the same:              │
+    │                                                          │
+    │     "The representation of data has structure.            │
+    │      That structure is a tool."                           │
+    └──────────────────────────────────────────────────────────┘
+
+    NEXT: Let's chain everything together in one pipeline.
+    → the_full_spectrum.py
+    

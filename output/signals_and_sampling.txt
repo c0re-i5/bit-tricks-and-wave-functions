@@ -1,0 +1,620 @@
+
+████████████████████████████████████████████████████████████████████████
+█  SIGNALS AND SAMPLING                                              █
+█  The bridge between the continuous world and digital representation █
+████████████████████████████████████████████████████████████████████████
+
+========================================================================
+  PART 1: WHAT IS A SIGNAL?
+  The continuous world before the bits
+========================================================================
+
+    A SIGNAL is any quantity that varies over time (or space):
+
+      • Sound:       air pressure vs. time
+      • Light:       electromagnetic field vs. position
+      • Temperature: degrees vs. time
+      • Stock price: dollars vs. time
+      • WiFi:        voltage vs. time
+
+    Mathematically, a signal is just a function: f(t) → value.
+
+    The simplest signal is a SINE WAVE:
+
+        f(t) = A · sin(2π · f · t + φ)
+
+        A = amplitude   (how tall)
+        f = frequency   (how fast — cycles per second, measured in Hz)
+        φ = phase       (where in the cycle we start)
+
+    Let's see one:
+    
+        1.00 ┤    ███│                 ███│                 ███│              
+             ┤   █│  █│               █│  █│               █│  █│             
+             ┤   │    █│              │    █│              │    █│            
+             ┤  █│     │             █│     │             █│     │            
+             ┤  │      █│            │      █│            │      █│           
+             ┤ █│       │           █│       │           █│       │           
+             ┤ │        █│          │        █│          │        █│          
+             ┤ │         │          │         │          │         │          
+        0.00 ┤█····················█····················█····················█
+             ┤           █│        │          █│        │          █│        │
+             ┤            │       █│           │       █│           │       █│
+             ┤            █│      │            █│      │            █│      │ 
+             ┤             │     █│             │     █│             │     █│ 
+             ┤             █│    │              █│    │              █│    │  
+             ┤              █│  █│               █│  █│               █│  █│  
+             ┤               ███│                 ███│                 ███│   
+       -1.00 ┤                                                                
+             └────────────────────────────────────────────────────────────────
+              3 Hz sine wave over 1 second
+
+    That's 3 complete cycles in 1 second → 3 Hz (Hertz).
+
+    Now the KEY INSIGHT that Fourier had in 1807:
+    
+    ┌──────────────────────────────────────────────────────────┐
+    │  ANY signal — no matter how complicated — can be         │
+    │  written as a SUM of sine waves at different             │
+    │  frequencies, amplitudes, and phases.                    │
+    └──────────────────────────────────────────────────────────┘
+    
+  ── Superposition: building complex signals from simple ones ──
+
+    Component 1:  sin(2π·3·t)           — 3 Hz, amplitude 1.0
+        1.00 ┤   █████│               █████│               █████│             
+             ┤  █│    █│             █│    █│             █│    █│            
+             ┤ █│      █│           █│      █│           █│      █│           
+             ┤ │        █│          │        █│          │        █│          
+        0.00 ┤█··········█·········█··········█·········█··········█·········█
+             ┤            █│      █│           █│      █│           █│      █│
+             ┤             █│    █│             █│    █│             █│    █│ 
+             ┤              █████│               █████│               █████│  
+       -1.00 ┤                                                                
+             └────────────────────────────────────────────────────────────────
+    Component 2:  0.5·sin(2π·7·t)       — 7 Hz, amplitude 0.5
+        0.50 ┤  ██│      ██│      ██│      ██│      ██│      ██│      ██│     
+             ┤ █│ │     █│ │     █│ │     █│ │     █│ │     █│ │     █│ │     
+             ┤ │  █│    │  █│    │  █│    │  █│    │  █│    │  █│    │  █│    
+             ┤ │   │    │   │    │   │    │   │    │   │    │   │    │   │    
+        0.00 ┤█········█········█········█········█········█········█········█
+             ┤     █│  │    █│  │    █│  │    █│  │    █│  │    █│  │    █│  │
+             ┤      │ █│     │ █│     │ █│     │ █│     │ █│     │ █│     │ █│
+             ┤      ██│      ██│      ██│      ██│      ██│      ██│      ██│ 
+       -0.50 ┤                                                                
+             └────────────────────────────────────────────────────────────────
+    Component 3:  0.3·sin(2π·13·t)      — 13 Hz, amplitude 0.3
+        0.30 ┤ █│   █│   █│   █│   █│  ██│  █│   █│   █│   █│   █│  ██│  █│   
+             ┤ │█│  ││   ││  █││  █││  │ │  │█│  ││   ││   ││  █││  │ │  │█│  
+             ┤ │ │  │█│ █││  │ │  │ │  │ │  │ │  │█│ █│█│ █││  │ │  │ │  │ │  
+             ┤ │ │ █│ │ │ █│ │ │  │ │  │ │  │ │ █│ │ │  │ │ █│ │ │  │ │  │ │ █
+        0.00 ┤█················█····█······█·····················█············
+             ┤   │ │  │ │  │ │  │█│  │█│ █││  │ │  │ │  │ │  │ │  │█│ █│█│ │ │
+             ┤   █││  │ │  │█│  ││   ││   ││  █││  █││  │ │  │█│  ││   ││  █││
+             ┤    █│  ██│  █│   █│   █│   █│   █│   █│  ██│  █│   █│   █│   █│
+       -0.30 ┤                                                                
+             └────────────────────────────────────────────────────────────────
+    SUM of all three:
+        1.27 ┤  ██│                        ██│             █████│             
+             ┤ █│ ███│                  ███│ │             │    █│            
+             ┤ │     │  ██│        █│  █│    █│            │     │            
+             ┤ │     █│ │ │       █│█│ │      │           █│     │            
+             ┤█·······██··█··········██······································█
+       -0.00 ┤             │      │           │       █│  │      █│ ██│      │
+             ┤             │     █│           █│     █│█│█│       │ │ █│     │
+             ┤             │     │             │    █│  █│        ██│  │     │
+             ┤             █│    │             │ ███│                  ████│█│
+             ┤              █████│             ██│                         █│ 
+       -1.27 ┤                                                                
+             └────────────────────────────────────────────────────────────────
+              Composite: 3 Hz + 7 Hz + 13 Hz
+
+    The composite looks complex, but it's just three simple waves added.
+    EVERY sound you hear — music, speech, noise — is exactly this:
+    sine waves at different frequencies, added together.
+
+    A piano chord is 3 frequencies. A human voice is hundreds.
+    A full orchestral recording is thousands.
+
+    But they're ALL just sums of sines.
+    
+
+========================================================================
+  PART 2: THE SAMPLING THEOREM
+  How to capture infinity in a finite list of numbers
+========================================================================
+
+    A continuous signal has a value at EVERY point in time —
+    uncountably infinite values. A computer can only store
+    finitely many numbers. How do we bridge this gap?
+
+    We SAMPLE: measure the signal at regular intervals.
+
+        continuous:  f(t) for all real t
+        sampled:     f(0), f(Δt), f(2Δt), f(3Δt), ...
+
+    The spacing Δt is the SAMPLE PERIOD.
+    Its inverse 1/Δt is the SAMPLE RATE (samples per second).
+
+    CD audio: 44,100 samples/second (44.1 kHz)
+    Phone:     8,000 samples/second  (8 kHz)
+    Blu-ray:  96,000 samples/second (96 kHz)
+
+    But HOW FAST do we need to sample? This is where the magic is.
+    
+    ┌──────────────────────────────────────────────────────────┐
+    │  NYQUIST-SHANNON SAMPLING THEOREM (1949)                 │
+    │                                                          │
+    │  If a signal contains no frequencies higher than B Hz,   │
+    │  it is COMPLETELY determined by samples taken at a       │
+    │  rate of 2B samples per second.                          │
+    │                                                          │
+    │  f_sample ≥ 2 · f_max  →  PERFECT reconstruction        │
+    └──────────────────────────────────────────────────────────┘
+
+    Not approximate. PERFECT. Every last detail can be recovered
+    from the samples alone. This is one of the deepest results
+    in information theory.
+    
+  ── Proper sampling: 10 Hz signal sampled at 25 Hz ──
+
+    Signal: 10 Hz sine wave
+    Nyquist rate: 20 Hz (minimum)
+    Our sample rate: 25 Hz  ✓ above Nyquist
+    Samples taken: 12
+
+    Continuous signal:
+        1.00 ┤  ███│        ███│        ██│         ██│        ███│       
+             ┤  │  │       █│  │       █│ █│       █│ █│       │  █│      
+             ┤ █│  █│      │   █│      │   █│     █│   │      █│   │      
+             ┤ │    │     █│    │     █│    │     │    █│     │    █│     
+        0.00 ┤█·····█···········█················█···········█···········█
+             ┤       │   █│      │   █│     █│   │      █│   │      █│   │
+             ┤       █│  │       █│  │       █│ █│       │  █│       │  █│
+             ┤        ███│        ███│        ██│        ███│        ███│ 
+       -1.00 ┤                                                            
+             └────────────────────────────────────────────────────────────
+
+    Sampled version (● = sample points):
+        1.00 ┤              ●                        ●         ●          
+             ┤    ●         │                        │         │          
+             ┤    │         │         ●              │         │          
+             ┤    │         │         │    ●         │         │          
+             ┤●···│····│····│····│····│····│····│····│····│····│····│·····
+             ┤         │         │              │         │         ●     
+             ┤         │         │              ●         │               
+             ┤         ●         ●                        │               
+       -1.00 ┤                                            ●               
+             └────────────────────────────────────────────────────────────
+
+    With 25 samples per second, we captured a 10 Hz wave.
+    Nyquist says 20 would suffice. We have margin.
+    From these samples alone, we can reconstruct the original
+    continuous signal PERFECTLY.
+    
+
+========================================================================
+  PART 3: ALIASING — WHEN SAMPLING GOES WRONG
+  The demon that haunts undersampled signals
+========================================================================
+
+    What happens if we sample TOO SLOWLY — below the Nyquist rate?
+
+    The signal FOLDS BACK. High frequencies masquerade as low
+    frequencies. This is ALIASING, and it's irreversible.
+
+    You've seen it: car wheels that appear to spin backward in
+    video. That's temporal aliasing — the frame rate is too low
+    to capture the true rotation speed.
+    
+    The true signal: 10 Hz sine wave
+
+        1.00 ┤  ███│        ███│        ██│         ██│        ███│       
+             ┤ █│  │       █│  │       █│ █│       █│ █│       │  █│      
+             ┤ │   █│      │   █│      │   █│     █│   │      █│   │      
+             ┤ │    │     █│    │     █│    │     │    █│     │    █│     
+        0.00 ┤█·····█···········█················█···········█···········█
+             ┤       │   █│      │   █│     █│   │      █│   │      █│   │
+             ┤       █│  │       █│  │       █│ █│       │  █│       │  █│
+             ┤        ███│        ███│        ██│        ███│        ███│ 
+       -1.00 ┤                                                            
+             └────────────────────────────────────────────────────────────
+              True: 10 Hz
+
+    Sampled at 25 Hz (25 samples) — ✓
+        0.95 ┤              █│                      █│                    
+             ┤    ██│      █│█│           █│       █│█│           █│      
+             ┤  ██│ │      │  █│        ██│█│      │  │         ██│█│     
+             ┤██····█·····█····█······██····█·····█···█·······██··········
+       -0.00 ┤       █│   │     │   ██│      │   █│    █│   ██│     █│   █
+             ┤        █│ █│     █│██│        █│  │      █│██│        █│ █│
+             ┤         │ │       █│           █│█│       █│           │ │ 
+             ┤         ██│                     █│                     ██│ 
+       -0.95 ┤                                                            
+             └────────────────────────────────────────────────────────────
+
+    Sampled at 15 Hz (15 samples) — ✗ ALIASED
+        0.86 ┤               ███│                    ███│                 
+             ┤              █│  ██│                 █│  ██│               
+             ┤             █│     ██│              █│     ██│             
+             ┤█···········█·········██············█·········██············
+       -0.00 ┤ █│        █│           ██│        █│           ██│        █
+             ┤  ██│     █│              ██│     █│              ██│     █│
+             ┤    ██│  █│                 ██│  █│                 ██│  █│ 
+             ┤      ███│                    ███│                    ███│  
+       -0.87 ┤                                                            
+             └────────────────────────────────────────────────────────────
+
+    Sampled at 12 Hz (12 samples) — ✗ ALIASED
+        0.87 ┤                                     ███████████████│       
+             ┤                                   ██│              ███│    
+             ┤                                ███│                   ██│  
+             ┤                              ██│                        ███
+        0.00 ┤███·························██······························
+             ┤   ██│                   ███│                               
+             ┤     ███│              ██│                                  
+             ┤        ██│████████████│                                    
+       -0.87 ┤          █│                                                
+             └────────────────────────────────────────────────────────────
+
+    At 25 Hz: perfect capture (above 2×10 = 20 Hz Nyquist rate).
+    At 15 Hz: BELOW Nyquist. The 10 Hz signal aliases to 5 Hz!
+    At 12 Hz: even worse. The reconstructed signal is 2 Hz.
+
+    The aliased frequency is:  f_alias = |f_signal - n·f_sample|
+    where n is the nearest integer multiple.
+
+    ┌──────────────────────────────────────────────────────────┐
+    │  ALIASING IS IRREVERSIBLE                                │
+    │                                                          │
+    │  Once you've sampled too slowly, the original frequency  │
+    │  information is GONE. No algorithm can recover it.       │
+    │  This is why CD players have anti-aliasing filters       │
+    │  that remove frequencies above 22.05 kHz BEFORE          │
+    │  sampling at 44.1 kHz.                                   │
+    └──────────────────────────────────────────────────────────┘
+
+    ► Connection to repo 1: Aliasing is an information-theoretic
+      limit, like Shannon's entropy bound for compression. You
+      can't compress below entropy; you can't sample below Nyquist.
+      Both are fundamental limits on representation.
+    
+
+========================================================================
+  PART 4: QUANTIZATION — WHERE BITS MEET WAVES
+  How continuous amplitudes become discrete numbers
+========================================================================
+
+    Sampling discretizes TIME. But the amplitude values are still
+    continuous real numbers. To store them digitally, we must also
+    discretize AMPLITUDE. This is QUANTIZATION.
+
+    With n bits per sample, we get 2^n possible amplitude levels:
+
+      • 8-bit audio:  256 levels      (telephone quality)
+      • 16-bit audio: 65,536 levels   (CD quality)
+      • 24-bit audio: 16,777,216 levels (studio quality)
+      • 32-bit float: ~7 decimal digits (scientific instruments)
+
+    ► Connection to repo 1: This is where IEEE 754 from
+      bit_tricks_demo.py enters the signal processing world!
+      Each sample is stored as a float or integer, with the
+      same bit-level structure we explored there.
+    
+    Original signal (infinite precision):
+        1.30 ┤      ██│              █│                   ██│             
+             ┤  █│ █│ │             █│█│                 █│ │             
+             ┤ █│██│  █│            │  ████│             │  █│            
+             ┤ │       │            │      █│         ███│   ███│         
+             ┤█········█···········█·················█··········█·········
+       -0.00 ┤          │         █│        │        │           │       █
+             ┤          ███│   ███│         █│      █│           │       │
+             ┤             █│  │             █│██│  │            █│  ██│█│
+             ┤              │ █│              █│ █│█│             │ █│ █│ 
+             ┤              ██│                   █│              ██│     
+       -1.30 ┤                                                            
+             └────────────────────────────────────────────────────────────
+
+    2-bit quantization (4 levels)  SNR = 9.4 dB
+        1.30 ┤      ██│              ██│                 ███│             
+             ┤      │ │              │ │                 │  │             
+             ┤██████│ ██│          ██│ █████│        ████│  █████│        
+             ┤          │          │        │        │           │        
+        0.00 ┤····························································
+             ┤          ████│  ████│        █████│  █│           █│  █████
+             ┤              │  │                 │  │             │  │    
+             ┤              │  │                 │  │             │  │    
+       -1.30 ┤              ███│                 ███│             ███│    
+             └────────────────────────────────────────────────────────────
+
+    4-bit quantization (16 levels)  SNR = 24.2 dB
+        1.30 ┤      ██│              █│                   ██│             
+             ┤  ██│█│ │             █│██│██│             █│ █│            
+             ┤ █│ █│  █│            │   █│ │            █│   █│           
+             ┤█│       █│          █│      █│        ███│     ███│        
+        0.00 ┤··········███·····███·········█·······█····················█
+             ┤             │   █│            │ █│   │            █│  █│ █│
+             ┤             █│ █│             ██│██│█│             │ █│██│ 
+             ┤              █││                   █│              ██│     
+       -1.30 ┤               █│                                           
+             └────────────────────────────────────────────────────────────
+
+    8-bit quantization (256 levels)  SNR = 48.0 dB
+        1.30 ┤      ██│              ██│                  ██│             
+             ┤  ████│ │             █│ ████│             █│ █│            
+             ┤ █│     █│            │      │            █│   █│           
+             ┤█│       █│          █│      █│        ███│     ███│        
+        0.00 ┤··········██······███·········█·······█····················█
+             ┤            █│   █│            │      │            █│     █│
+             ┤             █│ █│             ████│ █│             │ ████│ 
+             ┤              ██│                  ██│              ██│     
+       -1.30 ┤                                                            
+             └────────────────────────────────────────────────────────────
+
+    16-bit quantization (65536 levels)  SNR = 96.3 dB
+        1.30 ┤      ██│              ██│                  ██│             
+             ┤  ████│ │             █│ ████│             █│ █│            
+             ┤ █│     █│            │      █│           █│   █│           
+             ┤█│       █│          █│       │        ███│     ███│        
+        0.00 ┤··········██······███·········█·······█····················█
+             ┤            █│   █│            │      │            █│     █│
+             ┤             █│  │             ████│ █│             │ ████│ 
+             ┤              ███│                 ██│              ██│     
+       -1.30 ┤                                                            
+             └────────────────────────────────────────────────────────────
+
+
+    The theoretical SNR for uniform quantization is:
+
+        SNR ≈ 6.02 · n + 1.76 dB     (n = bit depth)
+
+    Every extra bit of depth gives about 6 dB of dynamic range.
+    That's why 16-bit CD audio (96 dB range) sounds "good enough"
+    for most people — it covers the full dynamic range of hearing.
+
+    ┌──────────────────────────────────────────────────────────┐
+    │  BIT DEPTH IS RESOLUTION                                 │
+    │                                                          │
+    │  8 bits  → crude, audibly noisy (telephone)              │
+    │  16 bits → clean, covers human hearing range (CD)        │
+    │  24 bits → professional, exceeds perception (studio)     │
+    │  32-bit float → scientific precision (IEEE 754!)         │
+    └──────────────────────────────────────────────────────────┘
+
+    ► The quantization error is mathematically identical to the
+      rounding error in floating-point arithmetic from repo 1.
+      Both are consequences of mapping continuous values to
+      discrete representations.
+    
+
+========================================================================
+  PART 5: RECONSTRUCTION
+  From discrete samples back to the continuous signal
+========================================================================
+
+    The Nyquist theorem promises PERFECT reconstruction. But how?
+
+    The answer is the SINC FUNCTION:
+
+        sinc(x) = sin(πx) / (πx)
+
+    It looks like a splash in a pond — a central peak with ripples
+    that decay toward zero.
+    
+        1.00 ┤                              ████│                             
+             ┤                              │   │                             
+             ┤                             █│   █│                            
+             ┤                             │     │                            
+             ┤                            █│     █│                           
+             ┤                            │       │                           
+        0.39 ┤                           █│       █│                          
+             ┤                           │         │                          
+             ┤               ███│       █│         █│       ███│              
+             ┤███████······██···██························██···██······███████
+             ┤       ██████│      █│   █│           █│   █│      ██████│      
+             ┤                     ████│             ████│                    
+       -0.22 ┤                                                                
+             └────────────────────────────────────────────────────────────────
+              sinc(t) = sin(πt) / (πt)
+
+    The Whittaker-Shannon interpolation formula says:
+
+        f(t) = Σ f[n] · sinc(f_s · t − n)
+
+    Each sample creates a sinc function centered at its position.
+    The sinc functions ADD UP to perfectly reconstruct the original
+    continuous signal. The ripples of each sinc cancel out exactly
+    where the other samples are — this is called ORTHOGONALITY.
+    
+  ── Reconstruction Demo ──
+
+    Signal: 5 Hz sine
+    Samples: 15 at 15 Hz
+    Reconstruction error (RMSE): 6.61e-02
+
+    Samples:
+        0.87 ┤   ●           ●           ●           ●           ●        
+             ┤   │           │           │           │           │        
+             ┤   │           │           │           │           │        
+             ┤   │           │           │           │           │        
+             ┤●··│···│···●···│···│···●···│···│···●···│···│···●···│···│····
+             ┤       │           │           │           │           │    
+             ┤       │           │           │           │           │    
+             ┤       │           ●           ●           ●           ●    
+       -0.87 ┤       ●                                                    
+             └────────────────────────────────────────────────────────────
+
+    Reconstructed (via sinc interpolation):
+        1.06 ┤██│         ███│         ███│          ██│         ███│     
+             ┤  █│       █│  █│        │  █│        █│ █│        │  █│    
+             ┤   │       │    │       █│   │       █│   █│      █│   │    
+             ┤···█······█·····█······█·····█·························█····
+       -0.00 ┤    █│    │      │     │      █│    █│     █│    █│     █│  
+             ┤     │   █│      █│   █│       │   █│       │    │       │  
+             ┤     █│  │        █│ █│        █│  │        █│  █│       █│ 
+             ┤      ███│         ██│          ███│         ███│         ██
+       -1.06 ┤                                                            
+             └────────────────────────────────────────────────────────────
+
+    True continuous signal:
+        1.00 ┤██│         ███│         ███│         ███│         ███│     
+             ┤  █│       █│  █│        │  █│        │  █│        │  █│    
+             ┤   │       │    │       █│   │       █│   █│      █│   █│   
+             ┤   █│     █│    █│     █│    █│      │     │      │     │   
+        0.00 ┤······························█·····█······█·····█······█···
+             ┤    █│   █│      █│   █│       │   █│       │    │       │  
+             ┤     █│  │        █│  │        █│  │        █│  █│       █│ 
+             ┤      ███│         ███│         ███│         ███│         █│
+       -1.00 ┤                                                           █
+             └────────────────────────────────────────────────────────────
+
+
+    Reconstruction RMSE: 6.61e-02 — essentially perfect!
+
+    The tiny residual error is numerical, not theoretical.
+    With infinite precision arithmetic, the reconstruction
+    would be EXACT.
+
+    ► This is mathematically proven. Not heuristic. Not approximate.
+      Given samples at the Nyquist rate, sinc interpolation gives
+      you back the EXACT original continuous signal.
+    
+
+========================================================================
+  PART 6: THE ADC/DAC PIPELINE
+  Everything comes together
+========================================================================
+
+    Every time you listen to music, make a phone call, or watch
+    a video, this pipeline runs:
+
+    ┌────────────────────────────────────────────────────────────────┐
+    │  ANALOG → DIGITAL (ADC)                                       │
+    │                                                                │
+    │  1. Anti-alias filter:  Remove frequencies above f_s/2        │
+    │  2. Sample:             Measure at f_s samples/second         │
+    │  3. Quantize:           Round to nearest n-bit level          │
+    │  4. Encode:             Store as binary (this is repo 1!)     │
+    │                                                                │
+    │  DIGITAL → ANALOG (DAC)                                       │
+    │                                                                │
+    │  5. Decode:             Read binary → amplitude values        │
+    │  6. Reconstruct:        Sinc interpolation (or approximation) │
+    │  7. Smoothing filter:   Remove reconstruction artifacts       │
+    │  8. Output:             Drive speaker / display / etc.        │
+    └────────────────────────────────────────────────────────────────┘
+
+    Let's run the complete pipeline on a composite signal.
+    
+    Original signal: A4 (440 Hz) with harmonics
+    Components: 440 Hz + 880 Hz + 1320 Hz + 1760 Hz
+    Highest frequency: 1760 Hz
+
+        1.00 ┤  █│            █│            ██│            █│            █│   
+             ┤ █│█│          █│█│           │ │           █│█│           │█│  
+             ┤ │  █│         │  ██│         │ ██│         │  █│         █│ ██│
+             ┤ │   █│        │    █│       █│   █│        │   █│        │    █
+             ┤ │    ██│      │     █│      │     █│       │    ██│      │     
+        0.00 ┤█·······█·············██············██·····█·······█············
+             ┤         █│   █│        █│   │        █│   │        █│    │     
+             ┤          ██│ │          █│  │         █│  │         ██│ █│     
+             ┤            │ │           █│█│          █│ │           │ │      
+             ┤            ██│            █│            ██│           ██│      
+       -1.00 ┤                                                                
+             └────────────────────────────────────────────────────────────────
+              First 10ms of continuous signal
+
+    STEP 1: Anti-alias filter (remove > 4000 Hz)
+    → Frequencies 440, 880, 1320, 1760 Hz
+    → All below 4000 Hz Nyquist limit ✓
+
+    STEP 2: Sample at 8000 Hz → 800 samples
+        1.00 ┤ ●●            ●●            ●●             ●             ●●    
+             ┤●││●          ●││●●          ││●●           │●●           ││●   
+             ┤│││●●         ││││●●         ││││●         ●│││●●         │││●● 
+             ┤│││││●●●      ││││││●●       │││││●●       │││││●●       ●│││││ 
+             ┤│││││││●●│││││││││││││●│││││││││││││●│││││││││││││●││││││││││││·
+             ┤         ●●│││●        ●●│││●        ●●│││●        ●●││││       
+             ┤           │││           │││           ●││           ●●│●       
+             ┤           ●│●           ●●●            ●●             ●        
+       -1.00 ┤            ●                                                   
+             └────────────────────────────────────────────────────────────────
+
+    STEP 3: Quantize to 16 bits (65,536 levels)
+    Quantization error: 8.82e-06
+    Quantization SNR:   96.4 dB
+
+    STEP 4: Encode as binary
+    Sample #200: value = 0.033371
+    → Quantized integer: 33861
+    → Binary: 1000 0100 0100 0101
+    → This is where repo 1 begins: bits in memory.
+
+    STEPS 5-7: Decode → Reconstruct → Smooth
+
+    Reconstructed signal (first 10ms):
+        1.00 ┤ ██│            █│            ██│            █│            █│   
+             ┤ │ █│          █│█│           │ │           █│█│           │█│  
+             ┤ │  █│         │  ██│         │ ██│         │  █│         █│ ██│
+             ┤ │   █│        │    █│        │   █│        │   █│        │    █
+             ┤ │    ██│      │     █│      █│    █│       │    ██│      │     
+        0.00 ┤█·······█·············██············██·····█·······█············
+             ┤         █│    │        █│   │        █│   │        █│    │     
+             ┤          ██│ █│         █│  │         █│  │         ██│ █│     
+             ┤            │ │           █│█│          █│ │           │ │      
+             ┤            ██│            █│            ██│           ██│      
+       -1.00 ┤                                                                
+             └────────────────────────────────────────────────────────────────
+
+    End-to-end RMSE:  0.0294
+    End-to-end SNR:   26.0 dB
+
+    Storage: 800 samples × 16 bits = 1,600 bytes for 100ms of audio
+    Bitrate: 128,000 bits/sec = 128 kbps
+
+========================================================================
+  CONCLUSION: THE BRIDGE
+========================================================================
+
+    This script has shown the bridge between the continuous world
+    of waves and the discrete world of bits:
+
+    ┌──────────────────────────────────────────────────────────┐
+    │  CONTINUOUS                │  DISCRETE                    │
+    │  ─────────                │  ────────                    │
+    │  Infinite precision       │  Finite bits                 │
+    │  Analog signal            │  Digital samples             │
+    │  Smooth curves            │  Staircase quantization      │
+    │  Anti-alias filter        │  Bit manipulation            │
+    │  Sinc interpolation       │  Integer arithmetic          │
+    │                           │                              │
+    │  Connected by:  SAMPLING THEOREM                         │
+    │  f_sample ≥ 2·f_max → perfect reconstruction            │
+    └──────────────────────────────────────────────────────────┘
+
+    KEY INSIGHTS FROM THIS CHAPTER:
+
+    1. SAMPLING discretizes time. The Nyquist rate is the minimum.
+    2. QUANTIZATION discretizes amplitude. Bit depth = precision.
+    3. ALIASING is irreversible — it's the sampling world's
+       equivalent of lossy compression below Shannon entropy.
+    4. RECONSTRUCTION via sinc interpolation is PERFECT — given
+       enough samples, you lose nothing.
+    5. The ADC/DAC pipeline is the gateway between the physical
+       world and the digital world of repo 1.
+
+    ┌──────────────────────────────────────────────────────────┐
+    │  Repo 1 started with bits and asked:                     │
+    │    "What structure is hidden in this representation?"     │
+    │                                                          │
+    │  This repo starts with waves and asks:                   │
+    │    "How do we capture and decompose them?"               │
+    │                                                          │
+    │  Same question. Different domain.                        │
+    │  Same answer: exploit the structure of representation.   │
+    └──────────────────────────────────────────────────────────┘
+
+    NEXT: Now that we can capture waves as discrete samples,
+    how do we find out WHICH frequencies are in them?
+    That's the Fourier Transform → fourier_transform.py
+    

@@ -1,0 +1,528 @@
+
+████████████████████████████████████████████████████████████████████████
+█  THE FOURIER TRANSFORM                                             █
+█  Seeing frequencies: from Euler's formula to the FFT               █
+████████████████████████████████████████████████████████████████████████
+
+========================================================================
+  PART 1: EULER'S FORMULA — THE ROSETTA STONE
+  Where exponentials become waves
+========================================================================
+
+    Before we can understand the Fourier Transform, we need the
+    single most important formula in this entire repo:
+
+    ┌──────────────────────────────────────────────────────────┐
+    │  EULER'S FORMULA                                         │
+    │                                                          │
+    │      e^(iθ) = cos(θ) + i·sin(θ)                         │
+    │                                                          │
+    │  An exponential IS a wave. A wave IS an exponential.     │
+    │  They're the same thing, written in different notation.  │
+    └──────────────────────────────────────────────────────────┘
+
+    Think of e^(iθ) as an arrow spinning around the origin in the
+    complex plane. As θ increases, the arrow rotates:
+    
+    The unit circle: e^(iθ) for θ = 0 to 2π
+
+                  │          
+              ● ● ● ● ●      
+            ●     │     ●    
+          ●●      │      ●●  
+        ──●───────┼───────●──
+          ●●      │       ●  
+            ●     │     ●●   
+              ● ● ● ● ●      
+                  │          
+                  │          
+                 Re
+         Im ↑
+
+    Each point ● is e^(iθ) for one value of θ.
+    Real part = cos(θ), Imaginary part = sin(θ).
+
+    Now watch: as θ increases uniformly with time (θ = ωt),
+    the REAL PART traces out a cosine wave, and the
+    IMAGINARY PART traces out a sine wave:
+    
+    Real part of e^(i·2π·2·t):  cos(2π·2·t)
+        1.00 ┤██│           ███│          ████│          ███│           ██
+             ┤  █│         █│  █│         │   █│        █│  █│         █│ 
+             ┤   █│       █│    │        █│    │        │    █│       █│  
+             ┤    │       │     █│      █│     █│      █│     █│      │   
+        0.00 ┤····█······█·······█···································█····
+             ┤     │    █│        │    █│       █│    █│       █│    │    
+             ┤     █│   │         █│  █│         █│  █│         █│  █│    
+             ┤      ████│          ███│           █│█│           ███│     
+       -1.00 ┤                                     █│                     
+             └────────────────────────────────────────────────────────────
+    Imaginary part:             sin(2π·2·t)
+        1.00 ┤   ███│          ████│          ███│           ███│         
+             ┤  █│  █│         │   │         █│  █│         █│  █│        
+             ┤ █│    │        █│   █│        │    █│       █│    █│       
+             ┤ │     █│      █│     █│      █│     │       │      │       
+        0.00 ┤█·······█····················█·······█······█·······█······█
+             ┤         │    █│       █│    │        █│    │        │    █│
+             ┤         █│  █│         █│  █│         │   █│        █│   │ 
+             ┤          ███│           ███│          ████│          ████│ 
+       -1.00 ┤                                                            
+             └────────────────────────────────────────────────────────────
+
+    ► e^(iθ) packages a cosine AND a sine together into one object.
+    ► This is why complex numbers appear everywhere in signal
+      processing: they're the natural language for waves.
+    ► Connection to repo 1: just as Carmack saw that IEEE 754
+      bits are "secretly" logarithms, Euler saw that exponentials
+      are "secretly" waves.
+    
+
+========================================================================
+  PART 2: THE DFT — ANALYZING FREQUENCIES BY HAND
+  What's really happening inside a Fourier Transform
+========================================================================
+
+    The Discrete Fourier Transform (DFT) takes N time-domain
+    samples and produces N frequency-domain coefficients:
+
+    ┌──────────────────────────────────────────────────────────┐
+    │  DFT FORMULA                                             │
+    │                                                          │
+    │       N-1                                                │
+    │  X[k] = Σ  x[n] · e^(-i·2π·k·n/N)                      │
+    │       n=0                                                │
+    │                                                          │
+    │  x[n] = time sample at position n                        │
+    │  X[k] = frequency component at frequency k               │
+    │  N    = total number of samples                          │
+    └──────────────────────────────────────────────────────────┘
+
+    What is this doing? For each frequency k, it:
+    1. Creates a "test wave" at that frequency: e^(-i·2π·k·n/N)
+    2. Multiplies the signal by the test wave (correlation)
+    3. Sums the result
+
+    If the signal CONTAINS frequency k, the multiplication
+    reinforces and produces a large sum. If not, the products
+    cancel out to nearly zero.
+
+    Let's implement this from scratch:
+    
+    Test signal: sin(2π·5·t) + 0.6·sin(2π·12·t)
+        1.52 ┤  █│            █│         ██│                     ██│      
+             ┤ █│█│          █│█│       █│ │       █│  ██│       │ │      
+             ┤ │  │██│       │  │       │  █│      │███│ │      █│ █│     
+             ┤█···█··█····███················█····█······█················
+       -0.00 ┤        │   │     █│     █│   █││   │       │ ████│   █│ █│ 
+             ┤        █│ █│      │ ███││      █│  │       │ │        ██││ 
+             ┤         │ │       ██│  █│       │ █│       ██│           ██
+             ┤         ██│                     █││                        
+       -1.52 ┤                                  █│                        
+             └────────────────────────────────────────────────────────────
+              Two frequencies: 5 Hz and 12 Hz
+
+    DFT magnitude spectrum (first half — positive frequencies):
+         0.5 ┤                                
+             ┤     █                          
+             ┤     █                          
+             ┤     █                          
+             ┤     █                          
+         0.2 ┤     █      █                   
+             ┤     █      █                   
+             ┤     █      █                   
+             ┤     █      █                   
+             ┤     █      █                   
+           0 ┤     █      █                   
+             └────────────────────────────────
+              0 Hz            16 Hz      31 Hz
+
+    Detected peaks:
+      Frequency:    5.0 Hz    Magnitude: 0.500
+      Frequency:   12.0 Hz    Magnitude: 0.300
+
+    The DFT correctly identified both 5 Hz and 12 Hz!
+    The 12 Hz peak has magnitude ~0.3 (half of 0.6, because the
+    energy splits between positive and negative frequencies).
+
+    But there's a problem: this naïve DFT is O(N²).
+    For N = 1,000,000 that's a TRILLION operations.
+    Audio at 44.1 kHz generates that many samples in 22 seconds.
+
+    We need to go faster.
+    
+
+========================================================================
+  PART 3: THE FFT — THE COOLEY-TUKEY ALGORITHM
+  O(n²) → O(n log n): one of the top 10 algorithms ever
+========================================================================
+
+    In 1965, James Cooley and John Tukey published an algorithm that
+    reduced the DFT from O(N²) to O(N log N). It changed the world.
+
+    The trick: DIVIDE AND CONQUER on the DFT sum.
+
+    Split the signal into EVEN-indexed and ODD-indexed samples:
+
+        X[k] = Σ x[2m]·W^(2mk) + W^k · Σ x[2m+1]·W^((2m+1)k)
+             = DFT_even[k]     + W^k · DFT_odd[k]
+
+    where W = e^(-i·2π/N) is the "twiddle factor" — a root of unity.
+
+    Each half-DFT has size N/2. Apply the same split recursively
+    until you reach size-1 DFTs (which are trivial: X[0] = x[0]).
+
+    Cost: T(N) = 2·T(N/2) + O(N) → T(N) = O(N log N)
+    
+    ┌──────────────────────────────────────────────────────────┐
+    │  THE BUTTERFLY OPERATION                                 │
+    │                                                          │
+    │  At each stage, pairs of values are combined:            │
+    │                                                          │
+    │     a ──────┬──── a + W^k · b                            │
+    │             ╳                                             │
+    │     b ──────┘──── a - W^k · b                            │
+    │                                                          │
+    │  This "butterfly" pattern gives the FFT its structure.   │
+    │  The twiddle factor W^k ROTATES the complex number b     │
+    │  before adding/subtracting — it's Euler's formula at work│
+    └──────────────────────────────────────────────────────────┘
+    
+    Verification: our FFT vs numpy FFT
+    Maximum difference: 5.55e-17
+    Match: ✓ Perfect
+
+  ── Speed comparison: DFT O(N²) vs FFT O(N log N) ──
+
+         N    DFT O(N²)   FFT O(NlogN)    numpy FFT    Speedup
+    ────── ──────────── ────────────── ──────────── ──────────
+        64        1.0ms         0.1ms       0.003ms      16.7×
+       128        2.0ms         0.1ms       0.003ms      19.3×
+       256       10.5ms         0.2ms       0.003ms      44.5×
+       512       35.4ms         0.6ms       0.005ms      62.2×
+      1024            —         1.1ms       0.006ms          —
+
+    The FFT is dramatically faster for large N.
+    numpy's FFT is even faster because it's written in C and uses
+    vectorized operations — but it's the SAME algorithm.
+
+    ┌──────────────────────────────────────────────────────────┐
+    │  CONNECTION TO REPO 1                                    │
+    │                                                          │
+    │  The FFT uses BIT-REVERSAL PERMUTATION to reorder the    │
+    │  input before the butterfly stages. To bit-reverse an    │
+    │  index: reverse its binary representation.               │
+    │                                                          │
+    │  Index 3 in 8-point FFT: 011 → 110 = 6                  │
+    │  Index 5: 101 → 101 = 5 (palindrome!)                   │
+    │                                                          │
+    │  This is the SAME bit manipulation from repo 1's         │
+    │  bit_tricks_demo.py — bit reversal, now serving the      │
+    │  Fourier Transform.                                      │
+    └──────────────────────────────────────────────────────────┘
+    
+  ── Bit-reversal permutation for 8-point FFT ──
+
+     Index   Binary   Reversed   New Index
+    ────── ──────── ────────── ───────────
+         0      000        000           0   (self)
+         1      001        100           4 ← swap
+         2      010        010           2   (self)
+         3      011        110           6 ← swap
+         4      100        001           1 
+         5      101        101           5   (self)
+         6      110        011           3 
+         7      111        111           7   (self)
+
+========================================================================
+  PART 4: SPECTRAL ANALYSIS
+  Finding hidden frequencies in noisy signals
+========================================================================
+
+    The real power of the FFT: finding frequencies BURIED in noise.
+
+    Imagine a signal with a weak periodic component hidden under
+    heavy random noise. Your eyes can't see it. The FFT can.
+    
+    Clean signal (50 Hz + 120 Hz):
+        0.99 ┤                    █│        █│            █│        █│  █│
+             ┤ █│   █│   █│  ██│  ││        ││  █│    █│  ││  █│    ││  ││
+             ┤ │█│  ││  █││  │ │  │█│ ███│  ││  ││  ██││  ││  │█│  █││  ││
+             ┤█····█·█····█················█·····█··············█·█······█
+       -0.00 ┤   █││  │ │  │█│ │ █│ │ │  │█│ █│ │ █││  │ █│█│ │  ││  │ █│ 
+             ┤    ││  │█│  ││  █││  █││  ││   █││  ││  │█│  █││  ││  │█│  
+             ┤    █│  █│   ││   █│   ││  ││    █│  ││  ││    █│  ││  █│   
+             ┤             █│        █│  █│        █│  █│        █│       
+       -1.00 ┤                                                            
+             └────────────────────────────────────────────────────────────
+
+    Same signal buried in noise (SNR ≈ -6 dB, noise is LOUDER):
+        8.39 ┤                                                            
+             ┤                                                            
+             ┤                             █│                    █│       
+             ┤           █│  █│█│██│       ││       █│ █│█│  ███│││█│     
+        1.22 ┤██·████·█·█··········█···██···███··█·█·██···███·······███···
+             ┤  █│   █│││ █│█│█│█│  │██│ ██│   │█│█│    █│      █│█│   ███
+             ┤         █│  █│       █│         █│                         
+             ┤                                                            
+       -5.96 ┤                                                            
+             └────────────────────────────────────────────────────────────
+
+    FFT magnitude spectrum of the NOISY signal:
+         0.5 ┤                █                                           
+             ┤                █                                           
+             ┤                █                                           
+             ┤                █                                           
+             ┤                █                                           
+             ┤                █                                           
+         0.2 ┤                █                                           
+             ┤                █                                           
+             ┤                █                                           
+             ┤                █                                           
+             ┤   █      █     █            █          █               ██ █
+             ┤██ █ █ █ ██   ███     ████   █  ██ ██   █ █ █ ███ █  ██ ██ █
+           0 ┤██████████████████████████████████████ ████████████████ ████
+             └────────────────────────────────────────────────────────────
+              0 Hz                          90 Hz                   177 Hz
+
+    Detected peaks (above noise floor):
+          50 Hz  magnitude = 0.455
+         271 Hz  magnitude = 0.147
+         181 Hz  magnitude = 0.145
+         178 Hz  magnitude = 0.139
+         429 Hz  magnitude = 0.138
+
+    Even though the noise was LOUDER than the signal (negative SNR),
+    the FFT extracted both hidden frequencies perfectly.
+
+    This is why the FFT is used in:
+      • Music apps (Shazam: identify songs from noisy recordings)
+      • Medical imaging (MRI: reconstruct images from RF signals)
+      • Seismology (find earthquake frequencies in ground vibrations)
+      • Radar (find target frequencies in reflected signals)
+      • Radio (tune to one station among hundreds of overlapping signals)
+    
+
+========================================================================
+  PART 5: THE CONVOLUTION THEOREM
+  Multiplication in frequency = convolution in time
+========================================================================
+
+    CONVOLUTION is one of the most fundamental operations in signal
+    processing. It's how we apply filters, blur images, find
+    correlations, and multiply polynomials.
+
+    The definition:
+
+        (f * g)[n] = Σ f[k] · g[n - k]
+
+    Slide one signal over another, multiply point by point, sum.
+    Direct computation is O(N²).
+
+    ┌──────────────────────────────────────────────────────────┐
+    │  THE CONVOLUTION THEOREM                                 │
+    │                                                          │
+    │  Convolution in time domain equals MULTIPLICATION        │
+    │  in frequency domain:                                    │
+    │                                                          │
+    │      f * g  =  IFFT( FFT(f) · FFT(g) )                  │
+    │                                                          │
+    │  Cost:  O(N log N)  instead of  O(N²)                    │
+    └──────────────────────────────────────────────────────────┘
+
+    This is HUGE. Instead of O(N²) sliding/multiplying/summing,
+    do three FFTs (each O(N log N)) and one pointwise multiply (O(N)).
+    
+    Noisy signal:
+        2.18 ┤                             █│                    █│       
+             ┤        █│                   ││██│                 ││█│     
+             ┤   █████││ █│             ██││█│ │               █││█│███│  
+             ┤███······██··············█··█······█·█·········██·█······█··
+       -0.06 ┤            █│ █│█│██│ ██│       ██│█│█│ █│█│██│          ██
+             ┤             ██│││█│ ██│               ██│││█│              
+             ┤                █│                        █│                
+             ┤                                                            
+       -2.30 ┤                                                            
+             └────────────────────────────────────────────────────────────
+
+    After smoothing filter (convolution with moving average):
+        1.00 ┤      ███│                 ██████│                █│████│   
+             ┤    ██│  █│               █│     █│              █│█│   ██│ 
+             ┤████│     █│             █│       █│            █│        █│
+             ┤···········█·······················██··········█···········█
+       -0.03 ┤            █│          █│           █│        │            
+             ┤             ██│       █│             █│      █│            
+             ┤               ██│   ██│               ██│   █│             
+             ┤                 ████│                   ████│              
+       -1.05 ┤                                                            
+             └────────────────────────────────────────────────────────────
+
+    Direct convolution:   0.034ms
+    FFT convolution:      0.075ms
+    Max difference:       7.77e-16
+
+    For small kernels, direct convolution wins due to FFT overhead.
+    But for large kernels or long signals, FFT convolution dominates.
+
+    Applications of the convolution theorem:
+
+      • Audio reverb:     convolve sound with room impulse response
+      • Image blur:       convolve image with Gaussian kernel
+      • Edge detection:   convolve with Sobel/Laplacian kernel
+      • Polynomial mult:  coefficients are "signals," multiply via FFT
+      • Correlation:      convolve with time-reversed template
+    
+
+========================================================================
+  PART 6: WINDOWING AND SPECTRAL LEAKAGE
+  Why real-world FFT isn't as clean as the theory
+========================================================================
+
+    In theory, the DFT assumes the signal repeats FOREVER.
+    In practice, we have a FINITE window of data. If the signal
+    doesn't align perfectly with the window boundary, the DFT
+    sees artificial discontinuities at the edges.
+
+    This causes SPECTRAL LEAKAGE: energy from one frequency
+    "leaks" into neighboring frequencies, smearing the spectrum.
+    
+    Signal: 10.5 Hz sine (non-integer frequency)
+
+    Spectrum with rectangular window (no windowing):
+         0.3 ┤          █                    
+             ┤          ██                   
+             ┤          ██                   
+             ┤          ██                   
+             ┤          ██                   
+         0.2 ┤          ██                   
+             ┤          ██                   
+             ┤          ██                   
+             ┤         ████                  
+             ┤        █████                  
+           0 ┤███████████████                
+             └───────────────────────────────
+              0 Hz           15 Hz      30 Hz
+
+    Spectrum with Hann window:
+         0.4 ┤                               
+             ┤          ██                   
+             ┤          ██                   
+             ┤          ██                   
+             ┤          ██                   
+         0.2 ┤          ██                   
+             ┤          ██                   
+             ┤          ██                   
+             ┤          ██                   
+             ┤         ████                  
+           0 ┤         ████                  
+             └───────────────────────────────
+              0 Hz           15 Hz      30 Hz
+
+    The Hann window dramatically reduces spectral leakage.
+    The peak is sharper and the "skirt" around it is much lower.
+
+    Common windows and their properties:
+
+      ┌──────────────┬───────────────┬────────────────────────┐
+      │ Window       │ Main lobe     │ Side lobe attenuation  │
+      ├──────────────┼───────────────┼────────────────────────┤
+      │ Rectangular  │ Narrow        │ -13 dB (poor)          │
+      │ Hann         │ Medium        │ -31 dB                 │
+      │ Hamming      │ Medium        │ -42 dB                 │
+      │ Blackman     │ Wide          │ -58 dB (excellent)     │
+      │ Kaiser       │ Adjustable    │ Adjustable             │
+      └──────────────┴───────────────┴────────────────────────┘
+
+    The tradeoff: narrower main lobe (better frequency resolution)
+    vs. lower side lobes (less leakage). You can't have both —
+    this is ANOTHER manifestation of the uncertainty principle!
+    
+
+========================================================================
+  PART 7: PARSEVAL'S THEOREM — ENERGY CONSERVATION
+  The universe's bookkeeping between time and frequency
+========================================================================
+
+    ┌──────────────────────────────────────────────────────────┐
+    │  PARSEVAL'S THEOREM                                      │
+    │                                                          │
+    │      Σ |x[n]|²  =  (1/N) · Σ |X[k]|²                   │
+    │                                                          │
+    │  Total energy in time domain = total energy in frequency.│
+    │  The Fourier Transform conserves energy perfectly.        │
+    └──────────────────────────────────────────────────────────┘
+
+    This isn't just mathematical convenience — it's a CONSERVATION
+    LAW. No energy is created or destroyed by the transform.
+    
+             Signal    Time energy    Freq energy    Ratio
+    ─────────────── ────────────── ────────────── ────────
+          Pure sine       512.0000       512.0000 1.000000
+          Two sines       640.0000       640.0000 1.000000
+        White noise       980.4916       980.4916 1.000000
+              Chirp       501.7838       501.7838 1.000000
+
+    Every ratio is 1.000000 — perfect energy conservation.
+
+    Why this matters:
+
+    1. COMPRESSION: If you zero out small frequency components,
+       you know EXACTLY how much signal energy you're discarding.
+       This is how JPEG/MP3 decide what to throw away.
+
+    2. FILTERING: When you remove a frequency band, Parseval's
+       tells you exactly how much power you removed.
+
+    3. QUANTUM MECHANICS: Unitarity (energy conservation) of
+       quantum gates is the quantum version of Parseval's theorem.
+       The QFT is unitary precisely BECAUSE the classical FFT
+       conserves energy.
+
+    ► Connection to repo 1: CRC checksums detect errors by
+      checking invariants. Parseval's theorem is the spectral
+      checksum — if energy isn't conserved, something went wrong.
+    
+
+========================================================================
+  CONCLUSION: THE DUAL VIEW
+========================================================================
+
+    The Fourier Transform reveals a fundamental duality:
+
+    ┌──────────────────────────────────────────────────────────┐
+    │  Every signal has TWO representations:                   │
+    │                                                          │
+    │  TIME DOMAIN                │  FREQUENCY DOMAIN          │
+    │  ───────────                │  ────────────────          │
+    │  "What happened when?"      │  "What frequencies exist?" │
+    │  Direct measurement         │  FFT analysis              │
+    │  Convolution: O(N²)         │  Multiplication: O(N)      │
+    │  Local changes easy         │  Global patterns easy      │
+    │                                                          │
+    │  Connected by: the FOURIER TRANSFORM                     │
+    │  Made practical by: the FFT (Cooley-Tukey, 1965)         │
+    └──────────────────────────────────────────────────────────┘
+
+    This is the continuous-world counterpart of repo 1's core
+    insight. There, the same data (a float's bits) could be read
+    as a number OR as a logarithmic encoding. Here, the same
+    data (a signal's samples) can be read as amplitudes over time
+    OR as magnitudes at different frequencies.
+
+    SAME PRINCIPLE:
+      Representation has structure. Read it differently, gain power.
+
+    ┌──────────────────────────────────────────────────────────┐
+    │  Carmack (1999): Reinterpret float bits as integer       │
+    │                  → fast inverse square root               │
+    │                                                          │
+    │  Cooley-Tukey (1965): Reinterpret time samples as        │
+    │                       frequency components via FFT        │
+    │                       → fast spectral analysis            │
+    │                                                          │
+    │  Same trick. Different domain. Same power.               │
+    └──────────────────────────────────────────────────────────┘
+
+    NEXT: The Fourier Transform tells you WHAT frequencies exist
+    but not WHEN they happen. For that, we need wavelets.
+    → wavelets_and_uncertainty.py
+    
