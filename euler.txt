@@ -1,0 +1,129 @@
+═══════════════════════════════════════════════════════════════════════
+  EULER'S FORMULA — The Bridge Between Bits and Waves
+═══════════════════════════════════════════════════════════════════════
+
+  In 1748, Leonhard Euler published what many call the most
+  beautiful equation in all of mathematics:
+
+        e^(iθ) = cos(θ) + i·sin(θ)
+
+  Set θ = π and you get the famous identity:
+
+        e^(iπ) + 1 = 0
+
+  Five fundamental constants — e, i, π, 1, 0 — in one equation.
+  But this formula is far more than aesthetic elegance.
+
+───────────────────────────────────────────────────────────────────────
+  WHY IT MATTERS FOR THIS REPO
+───────────────────────────────────────────────────────────────────────
+
+  Euler's formula says that an EXPONENTIAL (e^(iθ)) and a WAVE
+  (cos + i·sin) are the SAME THING, just written differently.
+
+  This is the continuous-world cousin of Carmack's insight:
+
+    CARMACK:  The bit pattern of a float IS a logarithmic integer.
+              Read the bits differently → hidden structure.
+
+    EULER:    An exponential IS a rotating wave.
+              Write it differently → hidden structure.
+
+  Every topic in this repo flows from that equivalence:
+
+    • FOURIER TRANSFORM
+      Decompose any signal into e^(iωt) components.
+      Euler's formula is why this works: each component is
+      a sine wave at a specific frequency.
+
+    • FFT (COOLEY-TUKEY)
+      The twiddle factors W = e^(-i·2π/N) are Euler's formula
+      evaluated at N equally spaced angles. The entire FFT is
+      built on the symmetry of roots of unity — complex numbers
+      evenly spaced on the unit circle.
+
+    • QUANTUM MECHANICS
+      A qubit in state |ψ⟩ = α|0⟩ + β|1⟩ has complex amplitudes
+      α and β. Quantum gates ROTATE these amplitudes using — you
+      guessed it — e^(iθ). The Hadamard gate, the phase gate,
+      the entire Quantum Fourier Transform: all Euler's formula
+      applied to computation.
+
+    • SAMPLING THEOREM
+      Shannon proved that you can perfectly reconstruct a
+      continuous signal from discrete samples IF you sample
+      fast enough. The proof uses Fourier analysis, which uses
+      Euler's formula. Bits and waves meet at the sample.
+
+───────────────────────────────────────────────────────────────────────
+  THE FORMULA, UNPACKED
+───────────────────────────────────────────────────────────────────────
+
+  e^(iθ) traces a CIRCLE in the complex plane:
+
+        Im
+         │    · (e^(iπ/2) = i)
+         │  ·   ·
+         │·       · ← unit circle
+    ─────┼─────────·── Re
+         │·       ·
+         │  ·   ·     (e^(0) = 1) →
+         │    ·
+
+  At angle θ:
+    • The real part is cos(θ)     — the horizontal position
+    • The imaginary part is sin(θ) — the vertical position
+
+  As θ increases, the point SPINS around the circle.
+  That's a wave. That's a signal. That's a qubit.
+
+  Fourier said: any signal = sum of spinning arrows at different speeds.
+  Euler said: each spinning arrow = e^(iωt).
+
+  The Fast Fourier Transform says: compute all N arrows in O(n log n).
+
+  Quantum computing says: let the arrows interfere, and the answer
+  emerges from the pattern.
+
+───────────────────────────────────────────────────────────────────────
+  THE CONNECTION TO REPO 1
+───────────────────────────────────────────────────────────────────────
+
+  In repo 1, we started with 16 lines of C:
+
+      i  = * ( long * ) &y;           // evil floating point bit level hacking
+      i  = 0x5f3759df - ( i >> 1 );   // what the fuck?
+
+  Carmack's trick: IEEE 754 stores floats as sign + exponent + mantissa.
+  The bit pattern, reinterpreted as an integer, gives an approximate
+  logarithm. Shift right by 1 = divide the logarithm by 2 = square root.
+
+  In this repo, we start with Euler's formula:
+
+      e^(iθ) = cos(θ) + i·sin(θ)
+
+  Fourier's trick: any signal, reinterpreted as a sum of complex
+  exponentials, reveals its frequency content. The FFT computes
+  this decomposition in O(n log n) using the symmetry of e^(i·2π·k/N).
+
+  Same principle, different domain:
+
+    ┌──────────────────────────────────────────────────────────┐
+    │  DISCRETE (Repo 1)                                       │
+    │    Data = bits. Reinterpret them → hidden structure.     │
+    │    Tool: bit manipulation (shifts, XOR, masks)           │
+    │                                                          │
+    │  CONTINUOUS (Repo 2)                                     │
+    │    Data = waves. Decompose them → hidden frequencies.    │
+    │    Tool: Euler's formula (e^(iθ) = cos θ + i sin θ)     │
+    │                                                          │
+    │  THEY MEET at:                                           │
+    │    ADC/DAC:   continuous ↔ discrete                      │
+    │    FFT:       wave analysis via integer arithmetic       │
+    │    JPEG:      DCT (waves) + Huffman (bits)               │
+    │    Quantum:   wave interference on discrete gates        │
+    └──────────────────────────────────────────────────────────┘
+
+  Once you see it, you see it everywhere.
+
+═══════════════════════════════════════════════════════════════════════
